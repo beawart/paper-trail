@@ -1,840 +1,259 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#12161A">
-<title>Paper Trail</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OneDrive Date Saver</title>
 <style>
-  :root {
-    --paper: #EAEBE6;
-    --paper-alt: #E2E4DD;
-    --surface: #FFFFFF;
-    --surface-alt: #F5F6F2;
-    --border: #D7D9D0;
-    --ink: #1B2420;
-    --ink-secondary: #5C6660;
-    --ink-muted: #8B948C;
-    --stamp: #2F6B4F;
-    --stamp-light: #DCE9E1;
-    --stamp-dark: #1F4A36;
-    --danger: #B3452F;
-    --danger-light: #F5E1DB;
-    --shadow: 0 1px 3px rgba(20,30,25,0.08), 0 1px 2px rgba(20,30,25,0.05);
-    --shadow-md: 0 6px 16px rgba(20,30,25,0.12);
-    --radius: 10px;
-    --radius-lg: 16px;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  [data-theme="dark"] {
-    --paper: #12161A;
-    --paper-alt: #171C21;
-    --surface: #181D22;
-    --surface-alt: #1F262C;
-    --border: #2A3339;
-    --ink: #E7EAE6;
-    --ink-secondary: #A7B0AA;
-    --ink-muted: #667069;
-    --stamp: #4C9C77;
-    --stamp-light: #1D3A2C;
-    --stamp-dark: #8FD6B0;
-    --danger: #D97B63;
-    --danger-light: #3B2019;
-    --shadow: 0 1px 3px rgba(0,0,0,0.3);
-    --shadow-md: 0 8px 20px rgba(0,0,0,0.4);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    line-height: 1.45;
-    overscroll-behavior-y: none;
-  }
-  button { cursor:pointer; font-family:inherit; border:none; background:none; color:inherit; }
-  input, select, textarea { font-family:inherit; font-size:inherit; color:inherit; }
-  .mono { font-family:'Space Mono', ui-monospace, monospace; }
-
-  /* ── App shell ── */
-  #app { min-height:100vh; display:flex; flex-direction:column; padding-bottom: calc(78px + var(--safe-bottom)); }
-
-  /* ── Top bar ── */
-  .topbar {
-    position: sticky; top:0; z-index: 50;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 16px;
-  }
-  .topbar-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .brand { display:flex; align-items:baseline; gap:8px; }
-  .brand h1 { font-family:'Space Mono', monospace; font-size:19px; font-weight:700; letter-spacing:-0.3px; }
-  .brand .tag { font-size:11px; color:var(--ink-muted); }
-  .topbar-actions { display:flex; align-items:center; gap:8px; }
-  .icon-btn {
-    width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
-    border:1px solid var(--border); border-radius: var(--radius); background:var(--surface-alt);
-    font-size:16px; color: var(--ink-secondary); flex-shrink:0;
-  }
-  .icon-btn:active { transform: scale(0.94); }
-  .pill-btn {
-    display:inline-flex; align-items:center; gap:6px;
-    padding: 8px 12px; border-radius: 999px; border:1px solid var(--border);
-    background: var(--surface-alt); font-size:12.5px; font-weight:600; color:var(--ink-secondary);
-    white-space:nowrap;
-  }
-  .pill-btn.stamp { background: var(--stamp); color:#fff; border-color: var(--stamp); }
-  .pill-btn.stamp:disabled { opacity:0.5; }
-  .pill-btn .count { font-family:'Space Mono',monospace; }
-  .helper-line { margin-top:8px; font-size:12px; color: var(--ink-muted); }
-  .helper-line a { color: var(--stamp-dark); text-decoration:underline; cursor:pointer; }
-
-  /* ── Filter bar ── */
-  .filterbar {
-    position: sticky; top: 65px; z-index: 40;
-    background: var(--paper); padding: 10px 16px 4px;
-    display:flex; flex-direction:column; gap:8px;
-  }
-  .search-row { display:flex; gap:8px; }
-  .search-input {
-    flex:1; padding: 9px 12px; border:1px solid var(--border); border-radius: var(--radius);
-    background: var(--surface); font-size:13.5px;
-  }
-  .search-input:focus { outline: 2px solid var(--stamp); outline-offset: -1px; }
-  .pill-row { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
-  .pill-row::-webkit-scrollbar { display:none; }
-  .filter-pill {
-    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:999px;
-    border:1px solid var(--border); background:var(--surface); font-size:12px; font-weight:600;
-    color:var(--ink-secondary); white-space:nowrap; flex-shrink:0;
-  }
-  .filter-pill.active { background:var(--ink); color:var(--paper); border-color:var(--ink); }
-  .filter-pill .dot { width:7px; height:7px; border-radius:50%; }
-
-  /* ── Main / gallery ── */
-  .main { flex:1; padding: 8px 16px 24px; max-width: 900px; width:100%; margin:0 auto; }
-  .month-group { margin-top: 22px; }
-  .month-header {
-    display:flex; align-items:baseline; justify-content:space-between;
-    padding-bottom:6px; margin-bottom:12px; border-bottom: 1px dashed var(--border);
-  }
-  .month-header h2 { font-family:'Space Mono',monospace; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-secondary); }
-  .month-header .count { font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-muted); }
-
-  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:16px 12px; }
-  .item-card { position:relative; cursor:pointer; }
-  .badge-cat {
-    position:absolute; top:-8px; left:8px; z-index:2;
-    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:13px; box-shadow: var(--shadow); border: 2px solid var(--surface);
-  }
-  .pending-dot {
-    position:absolute; top:-6px; right:6px; z-index:2;
-    width:11px; height:11px; border-radius:50%; background: var(--danger);
-    border: 2px solid var(--surface);
-  }
-  .thumb-wrap {
-    background: var(--surface); padding: 10px 8px 0;
-    box-shadow: var(--shadow); border-radius: 3px 3px 0 0;
-    clip-path: polygon(0 0,100% 0,100% 92%,94% 100%,88% 92%,82% 100%,76% 92%,70% 100%,64% 92%,58% 100%,52% 92%,46% 100%,40% 92%,34% 100%,28% 92%,22% 100%,16% 92%,10% 100%,4% 92%,0 96%);
-    padding-bottom: 16px;
-  }
-  .thumb-wrap img { width:100%; aspect-ratio: 3/4; object-fit:cover; display:block; border-radius:2px; }
-  .card-meta { padding: 6px 2px 0; }
-  .card-meta .fname { font-size:11px; color:var(--ink-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .card-meta .fdate { font-family:'Space Mono',monospace; font-size:10.5px; color:var(--ink-muted); margin-top:1px; }
-
-  .empty-state { text-align:center; padding: 60px 20px; color: var(--ink-muted); }
-  .empty-state .icon { font-size:34px; margin-bottom:10px; }
-  .empty-state p { font-size:14px; max-width:280px; margin:0 auto; }
-
-  /* ── Bottom capture bar ── */
-  .capturebar {
-    position: fixed; bottom:0; left:0; right:0; z-index: 60;
-    background: var(--surface); border-top:1px solid var(--border);
-    padding: 10px 8px calc(10px + var(--safe-bottom));
-    display:flex; justify-content:space-around; gap:4px;
-  }
-  .cap-btn {
-    display:flex; flex-direction:column; align-items:center; gap:4px;
-    padding: 6px 4px; border-radius: var(--radius); flex:1; max-width:80px;
-  }
-  .cap-btn:active { background: var(--surface-alt); }
-  .cap-btn .circle {
-    width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:19px; color:#fff;
-  }
-  .cap-btn span.lbl { font-size:10px; font-weight:600; color:var(--ink-secondary); }
-
-  /* ── Modal ── */
-  .modal-overlay {
-    position:fixed; inset:0; background: rgba(10,14,12,0.55); z-index:100;
-    display:flex; align-items:flex-end; justify-content:center;
-  }
-  @media (min-width: 640px) { .modal-overlay { align-items:center; } }
-  .modal {
-    background: var(--surface); width:100%; max-width:480px; max-height:92vh; overflow-y:auto;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-md);
-  }
-  @media (min-width:640px) { .modal { border-radius: var(--radius-lg); } }
-  .modal-img-wrap { background: var(--paper-alt); display:flex; align-items:center; justify-content:center; max-height:50vh; overflow:hidden; }
-  .modal-img-wrap img { width:100%; max-height:50vh; object-fit:contain; }
-  .modal-body { padding: 16px 18px 20px; }
-  .modal-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .modal-title-row h3 { font-family:'Space Mono',monospace; font-size:14px; word-break:break-all; }
-  .field-row { display:flex; gap:10px; margin-bottom:10px; }
-  .field { flex:1; }
-  .field label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:var(--ink-muted); margin-bottom:5px; }
-  .field select, .field input[type=date] {
-    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface-alt); font-size:13.5px;
-  }
-  .status-line { font-size:12.5px; color: var(--ink-secondary); margin: 10px 0 16px; display:flex; align-items:center; gap:6px; }
-  .status-dot { width:8px; height:8px; border-radius:50%; }
-  .modal-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .modal-actions .full { grid-column: 1 / -1; }
-  .btn {
-    padding: 11px; border-radius: var(--radius); font-size:13.5px; font-weight:600; text-align:center;
-    border: 1px solid var(--border); background: var(--surface-alt); color: var(--ink);
-  }
-  .btn.primary { background: var(--stamp); color:#fff; border-color:var(--stamp); }
-  .btn.danger { background: var(--danger-light); color: var(--danger); border-color: transparent; }
-  .btn:active { transform: scale(0.98); }
-
-  /* ── Setup card ── */
-  .setup-card {
-    margin: 14px 16px 0; padding:16px; background: var(--surface); border:1px solid var(--border);
-    border-radius: var(--radius-lg); box-shadow: var(--shadow);
-  }
-  .setup-card h3 { font-size:14px; margin-bottom:6px; }
-  .setup-card p { font-size:12.5px; color: var(--ink-secondary); margin-bottom:12px; }
-
-  /* ── Toast ── */
-  .toast {
-    position: fixed; left:50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%);
-    background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius:999px;
-    font-size:12.5px; box-shadow: var(--shadow-md); z-index:200; max-width:88%; text-align:center;
-  }
-
-  .footer-note { text-align:center; padding: 10px 16px 4px; font-size:11px; color:var(--ink-muted); font-family:'Space Mono',monospace; }
+  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;line-height:1.4}
+  body{max-width:820px;margin:28px auto;padding:18px;border-radius:10px;background:#f7f8fb;color:#111}
+  h1{margin:0 0 8px;font-size:20px}
+  p{margin:8px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  button{padding:10px 12px;border-radius:8px;border:1px solid #cfd6e3;background:#fff;cursor:pointer}
+  button.primary{background:#0b66ff;color:#fff;border-color:#0b66ff}
+  button.warn{background:#ff6b6b;color:#fff;border-color:#ff6b6b}
+  input[type=text]{padding:8px;border-radius:8px;border:1px solid #cfd6e3;min-width:220px}
+  .info{background:#fff;padding:12px;border-radius:8px;border:1px solid #e6e9f2}
+  pre{background:#0f1724;color:#e6eef8;padding:12px;border-radius:8px;overflow:auto}
+  small{color:#556}
+  .ok{color:green;font-weight:600}
+  .bad{color:#b33;font-weight:600}
+  footer{margin-top:18px;font-size:13px;color:#556}
 </style>
 </head>
 <body>
-<div id="app"></div>
+  <h1>OneDrive Date Saver</h1>
+  <p class="info">
+    Save a single ISO date file into a folder that OneDrive syncs. Pick your OneDrive folder once, then use the buttons to write or read <strong>last_run_date.txt</strong>.
+  </p>
 
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <div class="row">
+    <button id="btnPick">Pick OneDrive Folder</button>
+    <button id="btnClear">Clear Saved Folder</button>
+    <span id="folderName" style="align-self:center"></span>
+  </div>
 
-<script type="text/babel">
-const { useState, useEffect, useRef, useMemo, useCallback } = React;
+  <div class="row">
+    <button id="btnSave" class="primary">Save Today</button>
+    <button id="btnRead">Read Saved Date</button>
+    <button id="btnCompare">Compare With Today</button>
+    <input id="fileName" type="text" value="last_run_date.txt" title="Filename" />
+  </div>
 
-/* ───────────────────── constants ───────────────────── */
-const CATEGORIES = [
-  { key:'receipt',  label:'Receipt',   folder:'Receipts',   icon:'🧾', color:'#2F6B4F' },
-  { key:'card',     label:'Card',      folder:'Cards',      icon:'💳', color:'#3D4F9E' },
-  { key:'id',       label:'ID',        folder:'IDs',        icon:'🪪', color:'#B8791A' },
-  { key:'warranty', label:'Warranty',  folder:'Warranties', icon:'🛡️', color:'#1F7A8C' },
-  { key:'misc',     label:'Misc',      folder:'Misc',       icon:'📄', color:'#6B7280' },
-];
-const catInfo = (key) => CATEGORIES.find(c => c.key === key) || CATEGORIES[4];
-const DB_NAME = 'paperTrailDB';
-const DB_VERSION = 1;
+  <div id="output" class="info" style="min-height:72px"></div>
 
-/* ───────────────────── indexedDB helpers ───────────────────── */
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('items')) db.createObjectStore('items', { keyPath: 'id' });
-      if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+  <hr />
+
+  <h2>Notes and tips</h2>
+  <p><strong>How it works</strong> — the app asks you to pick a folder. Choose a folder inside your OneDrive folder (for example the root of OneDrive or a subfolder). The app writes a text file named <strong>last_run_date.txt</strong> containing the date in <strong>YYYY-MM-DD</strong> format.</p>
+
+  <p><strong>Browser support</strong> — the File System Access API is supported in Chromium-based browsers (Chrome, Edge, Brave) on desktop and Android. If your browser does not support it, the app falls back to downloading the file; you can then move it into OneDrive manually or use the OneDrive app to upload it.</p>
+
+  <footer>
+    <small><strong>Tip</strong> — on Windows and macOS pick the OneDrive folder that your OneDrive client syncs. On Android use Chrome and pick the OneDrive folder if it is exposed by your system or use an rclone mount. On iOS use the download fallback and upload the file into OneDrive.</small>
+  </footer>
+
+<script>
+/* Minimal IndexedDB wrapper to persist directory handle */
+const DB_NAME = 'onedrive-date-saver';
+const STORE = 'handles';
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
   });
 }
-const dbPromise = openDB();
-async function idbPut(store, value) {
-  const db = await dbPromise;
+async function idbPut(key, value) {
+  const db = await idbOpen();
   return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put(value);
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
     tx.oncomplete = () => res();
     tx.onerror = () => rej(tx.error);
   });
 }
-async function idbGetAll(store) {
-  const db = await dbPromise;
+async function idbGet(key) {
+  const db = await idbOpen();
   return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).getAll();
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
     req.onsuccess = () => res(req.result);
     req.onerror = () => rej(req.error);
   });
 }
-async function idbGet(store, key) {
-  const db = await dbPromise;
+async function idbDel(key) {
+  const db = await idbOpen();
   return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readonly');
-    const req = tx.objectStore(store).get(key);
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
-  });
-}
-async function idbDelete(store, key) {
-  const db = await dbPromise;
-  return new Promise((res, rej) => {
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).delete(key);
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(key);
     tx.oncomplete = () => res();
     tx.onerror = () => rej(tx.error);
   });
 }
 
-/* ───────────────────── utils ───────────────────── */
-const pad = (n) => String(n).padStart(2, '0');
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-function buildFilename(categoryLabel, date) {
-  const y = date.getFullYear(), m = pad(date.getMonth() + 1), d = pad(date.getDate());
-  const hh = pad(date.getHours()), mm = pad(date.getMinutes()), ss = pad(date.getSeconds());
-  return `${categoryLabel}_${y}-${m}-${d}_${hh}${mm}${ss}.jpg`;
-}
-function monthLabel(date) {
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-}
-function monthKey(date) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`; }
-function blobToDataURL(blob) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsDataURL(blob);
-  });
-}
-async function loadImageSource(file) {
-  if (window.createImageBitmap) {
-    try { return await createImageBitmap(file); } catch (e) { /* fall through */ }
+/* Helpers */
+const out = (html) => document.getElementById('output').innerHTML = html;
+const folderNameEl = document.getElementById('folderName');
+const FILENAME_INPUT = document.getElementById('fileName');
+
+let dirHandle = null;
+const HANDLE_KEY = 'onedrive_dir_handle_v1';
+
+async function restoreHandle() {
+  if (!('showDirectoryPicker' in window)) return;
+  try {
+    const stored = await idbGet(HANDLE_KEY);
+    if (stored) {
+      // structuredClone of handle is supported in IndexedDB in modern browsers
+      dirHandle = stored;
+      const name = dirHandle.name || 'Picked folder';
+      folderNameEl.textContent = `Saved folder: ${name}`;
+    }
+  } catch (e) {
+    console.warn('Could not restore handle', e);
   }
-  return await new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
 }
-async function compressImage(file, maxDim, quality) {
-  const src = await loadImageSource(file);
-  let width = src.width || src.naturalWidth;
-  let height = src.height || src.naturalHeight;
-  if (width > height) { if (width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; } }
-  else { if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; } }
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(src, 0, 0, width, height);
-  return await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+
+async function pickFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    out('<span class="bad">Directory picker not supported in this browser.</span> Use the download fallback.</span>');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker();
+    dirHandle = handle;
+    await idbPut(HANDLE_KEY, handle);
+    folderNameEl.textContent = `Saved folder: ${handle.name || 'Picked folder'}`;
+    out('<span class="ok">Folder selected and saved.</span>');
+  } catch (e) {
+    out(`<span class="bad">Folder pick cancelled or failed: ${e.message}</span>`);
+  }
 }
-async function verifyPermission(handle, requestIfNeeded) {
-  const opts = { mode: 'readwrite' };
-  const cur = await handle.queryPermission(opts);
-  if (cur === 'granted') return true;
-  if (!requestIfNeeded) return false;
-  const req = await handle.requestPermission(opts);
-  return req === 'granted';
+
+async function clearSavedFolder() {
+  dirHandle = null;
+  await idbDel(HANDLE_KEY);
+  folderNameEl.textContent = '';
+  out('Saved folder cleared.');
 }
-const fsaSupported = typeof window.showDirectoryPicker === 'function';
 
-/* ───────────────────── App ───────────────────── */
-function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('pt-theme') || 'light');
-  const [items, setItems] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-  const [filterCat, setFilterCat] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState(null);
-  const [rootHandle, setRootHandle] = useState(null);
-  const [rootName, setRootName] = useState('');
-  const [needsReconnect, setNeedsReconnect] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [toast, setToast] = useState(null);
-  const fileInputRef = useRef(null);
-  const pendingCategoryRef = useRef('receipt');
-  const toastTimerRef = useRef(null);
+function isoToday(utc=false) {
+  const d = new Date();
+  if (utc) return d.toISOString().slice(0,10);
+  const tzOffset = d.getTimezoneOffset();
+  // local date in YYYY-MM-DD
+  const local = new Date(d.getTime() - tzOffset*60000);
+  return local.toISOString().slice(0,10);
+}
 
-  useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('pt-theme', theme); }, [theme]);
+async function writeFileToDir(filename, contents) {
+  if (!dirHandle) throw new Error('No directory handle available');
+  // create or overwrite
+  const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(contents);
+  await writable.close();
+  return fileHandle;
+}
 
-  const showToast = useCallback((msg) => {
-    setToast(msg);
-    clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToast(null), 2600);
-  }, []);
-
-  // initial load
-  useEffect(() => {
-    (async () => {
-      try {
-        const all = await idbGetAll('items');
-        all.sort((a, b) => new Date(b.dateTaken) - new Date(a.dateTaken));
-        setItems(all);
-        const settingRec = await idbGet('settings', 'rootHandle');
-        if (settingRec && settingRec.handle) {
-          const granted = await verifyPermission(settingRec.handle, false);
-          setRootHandle(settingRec.handle);
-          setRootName(settingRec.handle.name);
-          setNeedsReconnect(!granted);
-        }
-      } catch (e) { console.error(e); }
-      setLoaded(true);
-    })();
-  }, []);
-
-  const pendingCount = useMemo(() => items.filter(i => !i.synced).length, [items]);
-
-  /* ── connect folder ── */
-  const connectFolder = async () => {
-    if (!fsaSupported) { showToast("This browser can't link a folder — use Share or Download instead."); return; }
+async function saveToday() {
+  const filename = FILENAME_INPUT.value.trim() || 'last_run_date.txt';
+  const date = isoToday();
+  if ('showDirectoryPicker' in window && dirHandle) {
     try {
-      const handle = await window.showDirectoryPicker();
-      const ok = await verifyPermission(handle, true);
-      if (!ok) { showToast('Permission was not granted.'); return; }
-      await idbPut('settings', { key: 'rootHandle', handle });
-      setRootHandle(handle);
-      setRootName(handle.name);
-      setNeedsReconnect(false);
-      showToast(`Connected to "${handle.name}"`);
-    } catch (e) { if (e.name !== 'AbortError') console.error(e); }
-  };
-  const reconnectFolder = async () => {
-    if (!rootHandle) return;
-    const ok = await verifyPermission(rootHandle, true);
-    setNeedsReconnect(!ok);
-    if (ok) showToast('Reconnected.');
-  };
-
-  /* ── capture ── */
-  const openCapture = (categoryKey) => {
-    pendingCategoryRef.current = categoryKey;
-    if (fileInputRef.current) { fileInputRef.current.value = ''; fileInputRef.current.click(); }
-  };
-  const handleFiles = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    const category = pendingCategoryRef.current;
-    const info = catInfo(category);
-    let count = 0;
-    for (const file of files) {
-      try {
-        const [fullBlob, thumbBlob] = await Promise.all([
-          compressImage(file, 1800, 0.85),
-          compressImage(file, 360, 0.7),
-        ]);
-        const thumbDataUrl = await blobToDataURL(thumbBlob);
-        const dateTaken = new Date(file.lastModified || Date.now());
-        const record = {
-          id: uid(),
-          category,
-          dateTaken: dateTaken.toISOString(),
-          capturedAt: new Date().toISOString(),
-          filename: buildFilename(info.label, dateTaken),
-          thumbDataUrl,
-          blob: fullBlob,
-          synced: false,
-        };
-        await idbPut('items', record);
-        setItems(prev => [record, ...prev]);
-        count++;
-      } catch (err) { console.error(err); }
+      // request permission if needed
+      const perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+      if (perm === 'denied') throw new Error('Permission denied for folder');
+      await writeFileToDir(filename, date + '\n');
+      out(`<span class="ok">Saved ${date} to <strong>${filename}</strong> in folder <strong>${dirHandle.name}</strong>.</span>`);
+      return;
+    } catch (e) {
+      out(`<span class="bad">Failed to write file: ${e.message}</span>`);
+      return;
     }
-    if (count) showToast(`Saved ${count} item${count > 1 ? 's' : ''} to ${info.label}`);
-  };
+  }
 
-  /* ── sync ── */
-  const syncNow = async () => {
-    if (!fsaSupported) { showToast('Folder sync needs a desktop browser (Chrome/Edge).'); return; }
-    if (!rootHandle) { await connectFolder(); return; }
-    const ok = await verifyPermission(rootHandle, true);
-    setNeedsReconnect(!ok);
-    if (!ok) { showToast('Reconnect the folder to sync.'); return; }
-    const pending = items.filter(i => !i.synced);
-    if (!pending.length) { showToast('Everything is already synced.'); return; }
-    setSyncing(true);
-    let done = 0;
-    setSyncProgress({ done, total: pending.length });
-    for (const item of pending) {
-      try {
-        const info = catInfo(item.category);
-        const dirHandle = await rootHandle.getDirectoryHandle(info.folder, { create: true });
-        let finalName = item.filename;
-        let exists = true;
-        let attempt = 1;
-        while (exists) {
-          try { await dirHandle.getFileHandle(finalName, { create: false }); attempt++; finalName = item.filename.replace('.jpg', `-${attempt}.jpg`); }
-          catch (e) { exists = false; }
-        }
-        const fileHandle = await dirHandle.getFileHandle(finalName, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(item.blob);
-        await writable.close();
-        const updated = { ...item, synced: true, filename: finalName };
-        await idbPut('items', updated);
-        setItems(prev => prev.map(i => i.id === item.id ? updated : i));
-      } catch (err) { console.error('sync failed for', item.filename, err); }
-      done++;
-      setSyncProgress({ done, total: pending.length });
-    }
-    setSyncing(false);
-    setSyncProgress(null);
-    showToast(`Synced ${pending.length} item${pending.length > 1 ? 's' : ''} to "${rootHandle.name}"`);
-  };
-
-  /* ── import from folder ── */
-  const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
-  const FILENAME_DATE_RE = /_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})\./;
-  const categoryFromFilename = (name) => {
-    const found = CATEGORIES.find(c => name.toLowerCase().startsWith(c.label.toLowerCase() + '_'));
-    return found ? found.key : 'misc';
-  };
-  const importFromFolder = async () => {
-    if (!fsaSupported) { showToast('Folder import needs a desktop browser (Chrome/Edge).'); return; }
-    if (!rootHandle) { await connectFolder(); return; }
-    const ok = await verifyPermission(rootHandle, true);
-    setNeedsReconnect(!ok);
-    if (!ok) { showToast('Reconnect the folder to import.'); return; }
-    setImporting(true);
-    const existingMap = new Map(items.map(i => [`${i.category}/${i.filename}`, i]));
-    let importedCount = 0, reconciledCount = 0;
-
-    const processFile = async (name, handle, category) => {
-      const key = `${category}/${name}`;
-      const existing = existingMap.get(key);
-      if (existing) {
-        if (!existing.synced) {
-          const updated = { ...existing, synced: true };
-          await idbPut('items', updated);
-          setItems(prev => prev.map(i => i.id === existing.id ? updated : i));
-          existingMap.set(key, updated);
-          reconciledCount++;
-        }
-        return;
-      }
-      try {
-        const file = await handle.getFile();
-        const thumbBlob = await compressImage(file, 360, 0.7);
-        const thumbDataUrl = await blobToDataURL(thumbBlob);
-        const m = name.match(FILENAME_DATE_RE);
-        const dateTaken = m
-          ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])
-          : new Date(file.lastModified || Date.now());
-        const record = {
-          id: uid(), category, dateTaken: dateTaken.toISOString(),
-          capturedAt: new Date().toISOString(), filename: name, thumbDataUrl,
-          blob: file, synced: true,
-        };
-        await idbPut('items', record);
-        setItems(prev => [record, ...prev]);
-        existingMap.set(key, record);
-        importedCount++;
-      } catch (err) { console.error('import failed for', name, err); }
-    };
-
-    try {
-      // Walk the root folder: pick up loose files directly inside it, plus
-      // files inside any subfolder whose name matches a known category.
-      for await (const [name, handle] of rootHandle.entries()) {
-        if (handle.kind === 'file') {
-          if (!IMAGE_EXT.test(name)) continue;
-          await processFile(name, handle, categoryFromFilename(name));
-        } else if (handle.kind === 'directory') {
-          const catMatch = CATEGORIES.find(c => c.folder.toLowerCase() === name.toLowerCase());
-          if (!catMatch) continue;
-          try {
-            for await (const [subName, subHandle] of handle.entries()) {
-              if (subHandle.kind !== 'file' || !IMAGE_EXT.test(subName)) continue;
-              await processFile(subName, subHandle, catMatch.key);
-            }
-          } catch (err) { console.error('could not read folder', name, err); }
-        }
-      }
-    } catch (err) {
-      console.error('could not read connected folder', err);
-      showToast(`Could not read the folder (${err.name || 'error'}) — try reconnecting.`);
-    }
-
-    setImporting(false);
-    const parts = [];
-    if (importedCount) parts.push(`${importedCount} new`);
-    if (reconciledCount) parts.push(`${reconciledCount} marked synced`);
-    showToast(parts.length ? `Import: ${parts.join(', ')}` : 'No new files found in folder.');
-  };
-
-  /* ── share all pending ── */
-  const shareAllPending = async () => {
-    const pending = items.filter(i => !i.synced);
-    if (!pending.length) { showToast('Nothing pending to share.'); return; }
-    const files = pending.map(i => new File([i.blob], i.filename, { type: 'image/jpeg' }));
-    if (navigator.canShare && navigator.canShare({ files })) {
-      try { await navigator.share({ files, title: `${pending.length} pending item${pending.length > 1 ? 's' : ''}` }); return; }
-      catch (e) { if (e.name === 'AbortError') return; }
-    }
-    showToast(`Sharing multiple files isn't supported here — downloading ${pending.length} instead.`);
-    pending.forEach((item, idx) => {
-      setTimeout(() => {
-        const url = URL.createObjectURL(item.blob);
-        const a = document.createElement('a'); a.href = url; a.download = item.filename; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }, idx * 350);
-    });
-  };
-
-  /* ── item mutation ── */
-  const updateItem = async (id, patch) => {
-    const item = items.find(i => i.id === id);
-    if (!item) return;
-    const updated = { ...item, ...patch };
-    await idbPut('items', updated);
-    setItems(prev => prev.map(i => i.id === id ? updated : i));
-  };
-  const deleteItem = async (id) => {
-    await idbDelete('items', id);
-    setItems(prev => prev.filter(i => i.id !== id));
-    setSelectedId(null);
-    showToast('Deleted from vault.');
-  };
-
-  /* ── derived / filtering ── */
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter(i => {
-      if (filterCat !== 'all' && i.category !== filterCat) return false;
-      if (filterStatus === 'pending' && i.synced) return false;
-      if (filterStatus === 'synced' && !i.synced) return false;
-      if (q) {
-        const hay = `${i.filename} ${catInfo(i.category).label}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [items, filterCat, filterStatus, search]);
-
-  const groups = useMemo(() => {
-    const map = new Map();
-    filtered.forEach(item => {
-      const d = new Date(item.dateTaken);
-      const key = monthKey(d);
-      if (!map.has(key)) map.set(key, { label: monthLabel(d), items: [] });
-      map.get(key).items.push(item);
-    });
-    return Array.from(map.values());
-  }, [filtered]);
-
-  const selectedItem = items.find(i => i.id === selectedId) || null;
-
-  return (
-    <div id="app-root">
-      <div className="topbar">
-        <div className="topbar-row">
-          <div className="brand">
-            <h1>Paper Trail</h1>
-            <span className="tag">snap · sort · sync</span>
-          </div>
-          <button className="icon-btn" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-        </div>
-        <div className="pill-row" style={{ marginTop: 10 }}>
-          {rootHandle && !needsReconnect && (
-            <button className="pill-btn stamp" onClick={syncNow} disabled={syncing || importing}>
-              {syncing ? `Syncing ${syncProgress ? `${syncProgress.done}/${syncProgress.total}` : ''}` : (pendingCount > 0 ? `Sync · ${pendingCount}` : 'Synced')}
-            </button>
-          )}
-          {rootHandle && !needsReconnect && (
-            <button className="pill-btn" onClick={importFromFolder} disabled={syncing || importing}>
-              {importing ? 'Importing…' : 'Import from folder'}
-            </button>
-          )}
-          {rootHandle && needsReconnect && (
-            <button className="pill-btn" onClick={reconnectFolder}>⚠ Reconnect</button>
-          )}
-          {!rootHandle && fsaSupported && (
-            <button className="pill-btn" onClick={connectFolder}>Connect folder</button>
-          )}
-          {pendingCount > 0 && (
-            <button className="pill-btn" onClick={shareAllPending}>↗ Share all pending · {pendingCount}</button>
-          )}
-        </div>
-        {rootHandle && !needsReconnect && (
-          <div className="helper-line">Linked to “{rootName}” — <a onClick={syncNow}>Sync</a> sends new items there, <a onClick={importFromFolder}>Import</a> pulls in anything added another way (like a phone share).</div>
-        )}
-        {!rootHandle && (
-          <div className="helper-line">
-            {fsaSupported ? 'Connect the folder your OneDrive app syncs on this computer to send items there automatically.' : "This browser can't link a folder — snap items here, then use Share or Download (single item, or all pending at once) to move them to OneDrive."}
-          </div>
-        )}
-      </div>
-
-      <div className="filterbar">
-        <div className="search-row">
-          <input className="search-input" placeholder="Search by filename or date…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <div className="pill-row">
-          <button className={`filter-pill ${filterCat === 'all' ? 'active' : ''}`} onClick={() => setFilterCat('all')}>All</button>
-          {CATEGORIES.map(c => (
-            <button key={c.key} className={`filter-pill ${filterCat === c.key ? 'active' : ''}`} onClick={() => setFilterCat(c.key)}>
-              <span className="dot" style={{ background: c.color }}></span>{c.label}
-            </button>
-          ))}
-        </div>
-        <div className="pill-row">
-          {['all', 'pending', 'synced'].map(s => (
-            <button key={s} className={`filter-pill ${filterStatus === s ? 'active' : ''}`} onClick={() => setFilterStatus(s)}>
-              {s === 'all' ? 'Any status' : s === 'pending' ? 'Pending' : 'Synced'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="main">
-        {loaded && groups.length === 0 && (
-          <div className="empty-state">
-            <div className="icon">🗂️</div>
-            <p>{items.length === 0 ? 'Nothing filed yet. Tap a category below to snap your first item.' : 'Nothing matches these filters.'}</p>
-          </div>
-        )}
-        {groups.map(group => (
-          <div className="month-group" key={group.label}>
-            <div className="month-header">
-              <h2>{group.label}</h2>
-              <span className="count mono">{group.items.length} item{group.items.length > 1 ? 's' : ''}</span>
-            </div>
-            <div className="grid">
-              {group.items.map(item => {
-                const info = catInfo(item.category);
-                const d = new Date(item.dateTaken);
-                return (
-                  <div className="item-card" key={item.id} onClick={() => setSelectedId(item.id)}>
-                    <div className="badge-cat" style={{ background: info.color }}>{info.icon}</div>
-                    {!item.synced && <div className="pending-dot" title="Not synced"></div>}
-                    <div className="thumb-wrap">
-                      <img src={item.thumbDataUrl} alt={info.label} />
-                    </div>
-                    <div className="card-meta">
-                      <div className="fname">{item.filename}</div>
-                      <div className="fdate">{pad(d.getDate())}/{pad(d.getMonth() + 1)}/{d.getFullYear()}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        <div className="footer-note">{items.length} total · {pendingCount} pending sync</div>
-      </div>
-
-      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }} onChange={handleFiles} />
-
-      <div className="capturebar">
-        {CATEGORIES.map(c => (
-          <button key={c.key} className="cap-btn" onClick={() => openCapture(c.key)}>
-            <span className="circle" style={{ background: c.color }}>{c.icon}</span>
-            <span className="lbl">{c.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {selectedItem && (
-        <DetailModal
-          item={selectedItem}
-          onClose={() => setSelectedId(null)}
-          onUpdate={updateItem}
-          onDelete={deleteItem}
-          rootConnected={!!rootHandle && !needsReconnect}
-          rootName={rootName}
-          showToast={showToast}
-        />
-      )}
-
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  );
+  // Fallback: download file
+  const blob = new Blob([date + '\n'], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  out(`<span class="ok">Downloaded ${filename}. Move it into your OneDrive folder to sync across devices.</span>`);
 }
 
-/* ───────────────────── Detail modal ───────────────────── */
-function DetailModal({ item, onClose, onUpdate, onDelete, rootName, showToast }) {
-  const info = catInfo(item.category);
-  const d = new Date(item.dateTaken);
-  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const imgUrl = useMemo(() => URL.createObjectURL(item.blob), [item.blob]);
-  useEffect(() => () => URL.revokeObjectURL(imgUrl), [imgUrl]);
-  const relativePath = `${info.folder}/${item.filename}`;
-
-  const handleDateChange = (e) => {
-    const [y, m, day] = e.target.value.split('-').map(Number);
-    const nd = new Date(item.dateTaken);
-    nd.setFullYear(y, m - 1, day);
-    onUpdate(item.id, { dateTaken: nd.toISOString() });
-  };
-
-  const download = () => {
-    const a = document.createElement('a');
-    a.href = imgUrl; a.download = item.filename; a.click();
-  };
-  const share = async () => {
+async function readSaved() {
+  const filename = FILENAME_INPUT.value.trim() || 'last_run_date.txt';
+  if (dirHandle) {
     try {
-      const file = new File([item.blob], item.filename, { type: 'image/jpeg' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: item.filename });
-      } else {
-        showToast('Sharing files is not supported here — try Download instead.');
-      }
-    } catch (e) { /* user cancelled */ }
-  };
-  const confirmDelete = () => {
-    if (confirm(`Delete ${item.filename}? This only removes it from the app${item.synced ? ' (the synced file in your folder stays)' : ''}.`)) onDelete(item.id);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-img-wrap"><img src={imgUrl} alt={item.filename} /></div>
-        <div className="modal-body">
-          <div className="modal-title-row"><h3>{item.filename}</h3></div>
-          <div className="field-row">
-            <div className="field">
-              <label>Category</label>
-              <select value={item.category} onChange={e => onUpdate(item.id, { category: e.target.value })}>
-                {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label>Date</label>
-              <input type="date" value={dateStr} onChange={handleDateChange} />
-            </div>
-          </div>
-          <div className="status-line">
-            <span className="status-dot" style={{ background: item.synced ? '#2F6B4F' : '#B3452F' }}></span>
-            {item.synced ? 'Synced to folder' : 'Saved locally — not yet synced'}
-          </div>
-          <div className="status-line mono" style={{ fontSize: 11.5 }}>
-            📁 {rootName ? `${rootName}/` : ''}{relativePath}
-          </div>
-          <div className="modal-actions">
-            <button className="btn" onClick={download}>↓ Download</button>
-            <button className="btn" onClick={share}>↗ Share</button>
-            <button className="btn danger full" onClick={confirmDelete}>Delete</button>
-            <button className="btn primary full" onClick={onClose}>Done</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      const perm = await dirHandle.requestPermission({ mode: 'read' });
+      if (perm === 'denied') throw new Error('Permission denied for folder');
+      const fileHandle = await dirHandle.getFileHandle(filename);
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      out(`<strong>Contents of ${filename}:</strong><pre>${text.replace(/\r/g,'')}</pre>`);
+      return;
+    } catch (e) {
+      out(`<span class="bad">Could not read file: ${e.message}</span>`);
+      return;
+    }
+  }
+  out('<span class="bad">No folder selected. Use Pick OneDrive Folder or upload the file manually.</span>');
 }
 
-ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+async function compareWithToday() {
+  const filename = FILENAME_INPUT.value.trim() || 'last_run_date.txt';
+  if (!dirHandle) {
+    out('<span class="bad">No folder selected. Use Pick OneDrive Folder or use the download fallback.</span>');
+    return;
+  }
+  try {
+    const perm = await dirHandle.requestPermission({ mode: 'read' });
+    if (perm === 'denied') throw new Error('Permission denied for folder');
+    const fileHandle = await dirHandle.getFileHandle(filename);
+    const file = await fileHandle.getFile();
+    const text = (await file.text()).trim();
+    const saved = text.split(/\s+/)[0];
+    const today = isoToday();
+    let msg;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+      msg = `<span class="bad">Saved file does not contain a valid ISO date. Found: ${saved}</span>`;
+    } else if (saved === today) {
+      msg = `<span class="ok">Saved date ${saved} matches today (${today}).</span>`;
+    } else {
+      msg = `<span>Saved date: <strong>${saved}</strong><br>Today: <strong>${today}</strong></span>`;
+    }
+    out(msg);
+  } catch (e) {
+    out(`<span class="bad">Compare failed: ${e.message}</span>`);
+  }
+}
+
+/* Wire UI */
+document.getElementById('btnPick').addEventListener('click', pickFolder);
+document.getElementById('btnClear').addEventListener('click', clearSavedFolder);
+document.getElementById('btnSave').addEventListener('click', saveToday);
+document.getElementById('btnRead').addEventListener('click', readSaved);
+document.getElementById('btnCompare').addEventListener('click', compareWithToday);
+
+/* Restore handle on load */
+restoreHandle().then(() => {
+  if (!dirHandle) {
+    // show hint if API available
+    if ('showDirectoryPicker' in window) {
+      out('No folder selected yet. Click Pick OneDrive Folder and choose a folder inside your OneDrive sync folder.');
+    } else {
+      out('Your browser does not support the directory picker. Save will download a file which you can move into OneDrive manually.');
+    }
+  } else {
+    out('Ready. Use Save Today to write the date into the selected folder.');
+  }
+});
 </script>
 </body>
 </html>
