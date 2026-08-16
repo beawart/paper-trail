@@ -196,105 +196,34 @@
     color:#667;
   }
   input[type="file"]{display:none;}
+  .preview{
+    margin-top:8px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .preview img{
+    max-width:120px;
+    border-radius:8px;
+    border:1px solid #dde3f0;
+  }
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <div class="title">Paper Trail</div>
-    <div class="subtitle">snap · sort · sync</div>
-  </div>
-  <div class="pill-row">
-    <span class="pill">OneDrive</span>
-    <span class="pill">Apps/PaperTrail</span>
-  </div>
-</header>
+<div id="root"></div>
 
-<div class="card">
-  <h2>Connect folder</h2>
-  <p>
-    On desktop, connect the local OneDrive folder where your files sync:<br>
-    <strong>OneDrive/Apps/PaperTrail</strong><br><br>
-    On mobile, use <strong>Share → OneDrive → Apps/PaperTrail</strong> to upload.  
-    After OneDrive syncs, tap Refresh here to see them.
-  </p>
-  <div class="row" style="margin-top:8px;">
-    <button id="btnPick" class="primary">Connect folder</button>
-    <button id="btnClear" class="ghost">Clear</button>
-    <span id="folderName" class="muted" style="margin-left:8px;"></span>
-  </div>
-  <div id="output"></div>
-</div>
+<!-- React + Babel CDN -->
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<div class="card">
-  <input id="search" type="search" placeholder="Search by filename or date…" />
-  <div class="filters">
-    <span class="chip active" data-cat="all">All</span>
-    <span class="chip" data-cat="Receipt">Receipt</span>
-    <span class="chip" data-cat="Card">Card</span>
-    <span class="chip" data-cat="ID">ID</span>
-    <span class="chip" data-cat="Warranty">Warranty</span>
-    <span class="chip" data-cat="Misc">Misc</span>
-  </div>
-  <div class="status-row">
-    <span class="chip active" data-status="any">Any status</span>
-    <span class="chip" data-status="pending"><span class="status-dot pending"></span>Pending</span>
-    <span class="chip" data-status="synced"><span class="status-dot synced"></span>Synced</span>
-  </div>
-  <div class="row" style="margin-top:8px;">
-    <button id="btnUpload" class="primary">Upload files</button>
-    <button id="btnRefresh">Refresh</button>
-    <input id="fileInput" type="file" multiple accept="image/*,application/pdf" />
-  </div>
-</div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-<div id="grid"></div>
-
-<div id="emptyState" class="empty">
-  <div class="empty-icon">📦</div>
-  <div>Nothing filed yet.</div>
-  <div>Tap a category below to snap your first item.</div>
-  <div style="margin-top:6px;">0 total · 0 pending sync</div>
-</div>
-
-<div class="bottom-bar">
-  <div class="bottom-cat" data-cat="Receipt">
-    <div class="bottom-circle">🧾</div>
-    <div>Receipt</div>
-  </div>
-  <div class="bottom-cat" data-cat="Card">
-    <div class="bottom-circle">💳</div>
-    <div>Card</div>
-  </div>
-  <div class="bottom-cat" data-cat="ID">
-    <div class="bottom-circle">🪪</div>
-    <div>ID</div>
-  </div>
-  <div class="bottom-cat" data-cat="Warranty">
-    <div class="bottom-circle">🔧</div>
-    <div>Warranty</div>
-  </div>
-  <div class="bottom-cat" data-cat="Misc">
-    <div class="bottom-circle">📦</div>
-    <div>Misc</div>
-  </div>
-</div>
-
-<footer>
-  <small>
-    Desktop: use Chrome/Edge, click <strong>Connect folder</strong>, and select your local OneDrive <strong>Apps/PaperTrail</strong> folder.<br>
-    Mobile: use <strong>Share → OneDrive → Apps/PaperTrail</strong>. After sync, tap <strong>Refresh</strong> here to see your files.
-  </small>
-</footer>
-
-<script>
 const HANDLE_KEY = 'papertrail_onedrive_folder_v1';
-let dirHandle = null;
-let items = []; // {name, size, type, category, status, date}
-
-/* IndexedDB wrapper */
 const DB = 'papertrail-onedrive';
 const STORE = 'handles';
+
 function idbOpen(){
   return new Promise((res,rej)=>{
     const r = indexedDB.open(DB,1);
@@ -331,149 +260,6 @@ async function idbDel(key){
   });
 }
 
-const out = msg => document.getElementById('output').innerHTML = msg;
-const folderNameEl = document.getElementById('folderName');
-const gridEl = document.getElementById('grid');
-const emptyEl = document.getElementById('emptyState');
-const fileInput = document.getElementById('fileInput');
-const searchInput = document.getElementById('search');
-
-function render(){
-  gridEl.innerHTML = '';
-  const query = searchInput.value.trim().toLowerCase();
-  const activeCat = document.querySelector('.chip[data-cat].active')?.dataset.cat || 'all';
-  const activeStatus = document.querySelector('.chip[data-status].active')?.dataset.status || 'any';
-
-  let filtered = items.slice();
-  if(activeCat !== 'all'){
-    filtered = filtered.filter(i=>i.category===activeCat);
-  }
-  if(activeStatus !== 'any'){
-    filtered = filtered.filter(i=>i.status===activeStatus);
-  }
-  if(query){
-    filtered = filtered.filter(i=>i.name.toLowerCase().includes(query) || (i.date||'').includes(query));
-  }
-
-  if(filtered.length===0){
-    emptyEl.style.display = 'block';
-  }else{
-    emptyEl.style.display = 'none';
-  }
-
-  filtered.forEach(i=>{
-    const card = document.createElement('div');
-    card.className = 'item-card';
-    const name = document.createElement('div');
-    name.className = 'item-name';
-    name.textContent = i.name;
-    const meta = document.createElement('div');
-    meta.className = 'item-meta';
-    meta.textContent = `${i.type || 'unknown'} • ${(i.size/1024).toFixed(1)} KB`;
-    const date = document.createElement('div');
-    date.className = 'item-meta';
-    date.textContent = i.date || '';
-    const cat = document.createElement('div');
-    cat.className = 'item-category';
-    cat.textContent = i.category || 'Misc';
-    const status = document.createElement('div');
-    status.className = 'item-meta';
-    const dot = document.createElement('span');
-    dot.className = 'status-dot ' + (i.status==='pending'?'pending':'synced');
-    status.appendChild(dot);
-    status.appendChild(document.createTextNode(i.status==='pending'?'Pending':'Synced'));
-
-    card.appendChild(name);
-    card.appendChild(meta);
-    if(i.date) card.appendChild(date);
-    card.appendChild(cat);
-    card.appendChild(status);
-    gridEl.appendChild(card);
-  });
-
-  const total = items.length;
-  const pending = items.filter(i=>i.status==='pending').length;
-  emptyEl.querySelector('div:last-child').textContent = `${total} total · ${pending} pending sync`;
-}
-
-async function restoreHandle(){
-  if(!('showDirectoryPicker' in window)){
-    out('Your browser does not support the folder picker. Use Chrome or Edge on desktop.');
-    return;
-  }
-  try{
-    const stored = await idbGet(HANDLE_KEY);
-    if(stored){
-      dirHandle = stored;
-      folderNameEl.textContent = `Connected: ${dirHandle.name || 'folder'}`;
-      out('Folder connected. Upload files or tap Refresh to see items.');
-      await refresh();
-    }else{
-      out('No folder connected. Tap “Connect folder” and choose your local OneDrive Apps/PaperTrail folder.');
-    }
-  }catch(e){
-    console.warn('restoreHandle failed',e);
-  }
-}
-
-async function pickFolder(){
-  if(!('showDirectoryPicker' in window)){
-    out('<span class="bad">Folder picker not supported in this browser.</span>');
-    return;
-  }
-  try{
-    const handle = await window.showDirectoryPicker();
-    dirHandle = handle;
-    await idbPut(HANDLE_KEY,handle);
-    folderNameEl.textContent = `Connected: ${handle.name || 'folder'}`;
-    out('<span class="ok">Folder connected.</span>');
-    await refresh();
-  }catch(e){
-    out(`<span class="bad">Folder pick cancelled or failed: ${e.message}</span>`);
-  }
-}
-
-async function clearFolder(){
-  dirHandle = null;
-  await idbDel(HANDLE_KEY);
-  folderNameEl.textContent = '';
-  items = [];
-  render();
-  out('Folder connection cleared.');
-}
-
-async function uploadFiles(files){
-  if(!dirHandle){
-    out('<span class="bad">No folder connected. Connect a folder first.</span>');
-    return;
-  }
-  try{
-    const perm = await dirHandle.requestPermission({mode:'readwrite'});
-    if(perm==='denied') throw new Error('Permission denied for folder');
-    let count = 0;
-    for(const file of files){
-      const fh = await dirHandle.getFileHandle(file.name,{create:true});
-      const writable = await fh.createWritable();
-      await writable.write(file);
-      await writable.close();
-      const now = new Date();
-      items.push({
-        name:file.name,
-        size:file.size,
-        type:file.type,
-        category:guessCategory(file.name),
-        status:'pending',
-        date:now.toISOString().slice(0,10)
-      });
-      count++;
-    }
-    out(`<span class="ok">Uploaded ${count} file(s) into ${dirHandle.name}.</span>`);
-    render();
-  }catch(e){
-    out(`<span class="bad">Upload failed: ${e.message}</span>`);
-  }
-}
-
 function guessCategory(name){
   const n = name.toLowerCase();
   if(n.includes('receipt')) return 'Receipt';
@@ -483,76 +269,345 @@ function guessCategory(name){
   return 'Misc';
 }
 
-async function refresh(){
-  items = [];
-  if(!dirHandle){
-    render();
-    return;
+function App(){
+  const [dirHandle,setDirHandle] = useState(null);
+  const [items,setItems] = useState([]);
+  const [output,setOutput] = useState('');
+  const [activeCat,setActiveCat] = useState('all');
+  const [activeStatus,setActiveStatus] = useState('any');
+  const [query,setQuery] = useState('');
+  const [snapCategory,setSnapCategory] = useState(null);
+  const [snapFile,setSnapFile] = useState(null);
+  const [snapPreview,setSnapPreview] = useState(null);
+  const fileInputRef = useRef(null);
+  const snapInputRef = useRef(null);
+
+  useEffect(()=>{
+    restoreHandle();
+  },[]);
+
+  async function restoreHandle(){
+    if(!('showDirectoryPicker' in window)){
+      setOutput('Folder picker only works on Chrome/Edge desktop. Mobile uses Share → OneDrive → Apps/PaperTrail.');
+      return;
+    }
+    try{
+      const stored = await idbGet(HANDLE_KEY);
+      if(stored){
+        setDirHandle(stored);
+        setOutput('Folder connected. Upload files or tap Refresh to see items.');
+        await refresh(stored);
+      }else{
+        setOutput('No folder connected. Tap “Connect folder” and choose your local OneDrive Apps/PaperTrail folder.');
+      }
+    }catch(e){
+      console.warn('restoreHandle failed',e);
+    }
   }
-  try{
-    const perm = await dirHandle.requestPermission({mode:'read'});
-    if(perm==='denied') throw new Error('Permission denied for folder');
-    for await (const entry of dirHandle.values()){
-      if(entry.kind==='file'){
-        const file = await entry.getFile();
-        items.push({
+
+  async function pickFolder(){
+    if(!('showDirectoryPicker' in window)){
+      setOutput('Folder picker not supported in this browser. Use Chrome/Edge on desktop.');
+      return;
+    }
+    try{
+      const handle = await window.showDirectoryPicker();
+      setDirHandle(handle);
+      await idbPut(HANDLE_KEY,handle);
+      setOutput('Folder connected.');
+      await refresh(handle);
+    }catch(e){
+      setOutput(`Folder pick cancelled or failed: ${e.message}`);
+    }
+  }
+
+  async function clearFolder(){
+    setDirHandle(null);
+    await idbDel(HANDLE_KEY);
+    setItems([]);
+    setOutput('Folder connection cleared.');
+  }
+
+  async function uploadFiles(files){
+    if(!dirHandle){
+      setOutput('No folder connected. Connect a folder first.');
+      return;
+    }
+    try{
+      const perm = await dirHandle.requestPermission({mode:'readwrite'});
+      if(perm==='denied') throw new Error('Permission denied for folder');
+      let count = 0;
+      const newItems = [...items];
+      for(const file of files){
+        const fh = await dirHandle.getFileHandle(file.name,{create:true});
+        const writable = await fh.createWritable();
+        await writable.write(file);
+        await writable.close();
+        const now = new Date();
+        newItems.push({
           name:file.name,
           size:file.size,
           type:file.type,
           category:guessCategory(file.name),
-          status:'synced',
-          date:file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : ''
+          status:'pending',
+          date:now.toISOString().slice(0,10)
         });
+        count++;
       }
+      setItems(newItems);
+      setOutput(`Uploaded ${count} file(s) into ${dirHandle.name}.`);
+    }catch(e){
+      setOutput(`Upload failed: ${e.message}`);
     }
-    out(`Loaded ${items.length} item(s) from ${dirHandle.name}.`);
-    render();
-  }catch(e){
-    out(`<span class="bad">Refresh failed: ${e.message}</span>`);
   }
+
+  async function refresh(handleOverride){
+    const handle = handleOverride || dirHandle;
+    if(!handle){
+      setItems([]);
+      return;
+    }
+    try{
+      const perm = await handle.requestPermission({mode:'read'});
+      if(perm==='denied') throw new Error('Permission denied for folder');
+      const newItems = [];
+      for await (const entry of handle.values()){
+        if(entry.kind==='file'){
+          const file = await entry.getFile();
+          newItems.push({
+            name:file.name,
+            size:file.size,
+            type:file.type,
+            category:guessCategory(file.name),
+            status:'synced',
+            date:file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : ''
+          });
+        }
+      }
+      setItems(newItems);
+      setOutput(`Loaded ${newItems.length} item(s) from ${handle.name}.`);
+    }catch(e){
+      setOutput(`Refresh failed: ${e.message}`);
+    }
+  }
+
+  function filteredItems(){
+    let list = [...items];
+    if(activeCat!=='all'){
+      list = list.filter(i=>i.category===activeCat);
+    }
+    if(activeStatus!=='any'){
+      list = list.filter(i=>i.status===activeStatus);
+    }
+    if(query){
+      const q = query.toLowerCase();
+      list = list.filter(i=>i.name.toLowerCase().includes(q) || (i.date||'').includes(q));
+    }
+    return list;
+  }
+
+  const total = items.length;
+  const pendingCount = items.filter(i=>i.status==='pending').length;
+
+  function onBottomCatClick(cat){
+    setActiveCat(cat);
+    // mobile snap: open camera
+    setSnapCategory(cat);
+    if(snapInputRef.current){
+      snapInputRef.current.click();
+    }
+  }
+
+  function onSnapChange(e){
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setSnapFile(file);
+    const url = URL.createObjectURL(file);
+    setSnapPreview(url);
+  }
+
+  async function shareSnap(){
+    if(!snapFile){
+      setOutput('No snapped image to share.');
+      return;
+    }
+    if(navigator.share && navigator.canShare && navigator.canShare({ files:[snapFile] })){
+      try{
+        await navigator.share({
+          files:[snapFile],
+          title:'Paper Trail',
+          text:'Upload to OneDrive Apps/PaperTrail'
+        });
+        setOutput('Shared to OneDrive (or chosen app). After sync, open desktop and Refresh.');
+      }catch(e){
+        setOutput(`Share cancelled or failed: ${e.message}`);
+      }
+    }else{
+      setOutput('Share API not supported. Use your gallery’s Share → OneDrive → Apps/PaperTrail.');
+    }
+  }
+
+  return (
+    <>
+      <header>
+        <div>
+          <div className="title">Paper Trail</div>
+          <div className="subtitle">snap · sort · sync</div>
+        </div>
+        <div className="pill-row">
+          <span className="pill">OneDrive</span>
+          <span className="pill">Apps/PaperTrail</span>
+        </div>
+      </header>
+
+      <div className="card">
+        <h2>Connect folder</h2>
+        <p>
+          Desktop: connect your local OneDrive folder where files sync:<br/>
+          <strong>OneDrive/Apps/PaperTrail</strong><br/><br/>
+          Mobile: snap a photo, then use <strong>Share → OneDrive → Apps/PaperTrail</strong>.  
+          After OneDrive syncs, tap Refresh here to see them.
+        </p>
+        <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
+          <button className="primary" onClick={pickFolder}>Connect folder</button>
+          <button className="ghost" onClick={clearFolder}>Clear</button>
+          <span style={{fontSize:12, color:'#667'}}>
+            {dirHandle ? `Connected: ${dirHandle.name}` : ''}
+          </span>
+        </div>
+        <div id="output">{output}</div>
+      </div>
+
+      <div className="card">
+        <input
+          type="search"
+          placeholder="Search by filename or date…"
+          value={query}
+          onChange={e=>setQuery(e.target.value)}
+        />
+        <div className="filters">
+          {['all','Receipt','Card','ID','Warranty','Misc'].map(cat=>(
+            <span
+              key={cat}
+              className={'chip' + (activeCat===cat ? ' active' : '')}
+              data-cat={cat}
+              onClick={()=>setActiveCat(cat)}
+            >
+              {cat==='all' ? 'All' : cat}
+            </span>
+          ))}
+        </div>
+        <div className="status-row">
+          {['any','pending','synced'].map(st=>(
+            <span
+              key={st}
+              className={'chip' + (activeStatus===st ? ' active' : '')}
+              data-status={st}
+              onClick={()=>setActiveStatus(st)}
+            >
+              {st==='any' ? 'Any status' : (
+                <>
+                  <span className={'status-dot ' + (st==='pending'?'pending':'synced')}></span>
+                  {st==='pending'?'Pending':'Synced'}
+                </>
+              )}
+            </span>
+          ))}
+        </div>
+        <div style={{marginTop:8, display:'flex', gap:8}}>
+          <button className="primary" onClick={()=>fileInputRef.current?.click()}>Upload files</button>
+          <button onClick={()=>refresh()}>Refresh</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            onChange={e=>{
+              const files = Array.from(e.target.files||[]);
+              if(files.length) uploadFiles(files);
+              e.target.value = '';
+            }}
+          />
+        </div>
+
+        {snapPreview && (
+          <div className="preview">
+            <img src={snapPreview} alt="Snap preview" />
+            <div style={{fontSize:12}}>
+              <div><strong>{snapCategory || 'Snap'}</strong></div>
+              <div style={{marginTop:4}}>
+                <button className="primary" onClick={shareSnap}>Share to OneDrive</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <input
+          ref={snapInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={onSnapChange}
+        />
+      </div>
+
+      <div id="grid">
+        {filteredItems().map((i,idx)=>(
+          <div key={idx} className="item-card">
+            <div className="item-name">{i.name}</div>
+            <div className="item-meta">
+              {(i.type || 'unknown') + ' • ' + (i.size/1024).toFixed(1) + ' KB'}
+            </div>
+            {i.date && <div className="item-meta">{i.date}</div>}
+            <div className="item-category">{i.category || 'Misc'}</div>
+            <div className="item-meta">
+              <span className={'status-dot ' + (i.status==='pending'?'pending':'synced')}></span>
+              {i.status==='pending'?'Pending':'Synced'}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filteredItems().length===0 && (
+        <div id="emptyState" className="empty">
+          <div className="empty-icon">📦</div>
+          <div>Nothing filed yet.</div>
+          <div>Tap a category below to snap your first item.</div>
+          <div style={{marginTop:6}}>{total} total · {pendingCount} pending sync</div>
+        </div>
+      )}
+
+      <div className="bottom-bar">
+        {[
+          {cat:'Receipt', icon:'🧾'},
+          {cat:'Card', icon:'💳'},
+          {cat:'ID', icon:'🪪'},
+          {cat:'Warranty', icon:'🔧'},
+          {cat:'Misc', icon:'📦'},
+        ].map(c=>(
+          <div
+            key={c.cat}
+            className="bottom-cat"
+            data-cat={c.cat}
+            onClick={()=>onBottomCatClick(c.cat)}
+          >
+            <div className="bottom-circle">{c.icon}</div>
+            <div>{c.cat}</div>
+          </div>
+        ))}
+      </div>
+
+      <footer>
+        <small>
+          Mobile: snap with the category buttons, then Share → OneDrive → Apps/PaperTrail.<br/>
+          Desktop: connect your local OneDrive Apps/PaperTrail folder and tap Refresh to see mobile uploads.
+        </small>
+      </footer>
+    </>
+  );
 }
 
-/* UI wiring */
-document.getElementById('btnPick').addEventListener('click',pickFolder);
-document.getElementById('btnClear').addEventListener('click',clearFolder);
-document.getElementById('btnUpload').addEventListener('click',()=>fileInput.click());
-document.getElementById('btnRefresh').addEventListener('click',refresh);
-fileInput.addEventListener('change',e=>{
-  const files = Array.from(e.target.files||[]);
-  if(files.length) uploadFiles(files);
-  fileInput.value = '';
-});
-searchInput.addEventListener('input',render);
-
-document.querySelectorAll('.chip[data-cat]').forEach(chip=>{
-  chip.addEventListener('click',()=>{
-    document.querySelectorAll('.chip[data-cat]').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    render();
-  });
-});
-document.querySelectorAll('.chip[data-status]').forEach(chip=>{
-  chip.addEventListener('click',()=>{
-    document.querySelectorAll('.chip[data-status]').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    render();
-  });
-});
-document.querySelectorAll('.bottom-cat').forEach(cat=>{
-  cat.addEventListener('click',()=>{
-    const target = cat.dataset.cat;
-    document.querySelectorAll('.chip[data-cat]').forEach(c=>{
-      c.classList.toggle('active',c.dataset.cat===target);
-    });
-    // also open camera/upload
-    fileInput.click();
-    render();
-  });
-});
-
-/* init */
-restoreHandle();
-render();
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
