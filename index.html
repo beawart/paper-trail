@@ -360,6 +360,7 @@ function App() {
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
   const pendingCategoryRef = useRef('receipt');
@@ -491,6 +492,84 @@ function App() {
     showToast(`Synced ${pending.length} item${pending.length > 1 ? 's' : ''} to "${rootHandle.name}"`);
   };
 
+  /* ── import from folder ── */
+  const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
+  const FILENAME_DATE_RE = /_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})\./;
+  const importFromFolder = async () => {
+    if (!fsaSupported) { showToast('Folder import needs a desktop browser (Chrome/Edge).'); return; }
+    if (!rootHandle) { await connectFolder(); return; }
+    const ok = await verifyPermission(rootHandle, true);
+    setNeedsReconnect(!ok);
+    if (!ok) { showToast('Reconnect the folder to import.'); return; }
+    setImporting(true);
+    const existingMap = new Map(items.map(i => [`${i.category}/${i.filename}`, i]));
+    let importedCount = 0, reconciledCount = 0;
+    for (const cat of CATEGORIES) {
+      let dirHandle;
+      try { dirHandle = await rootHandle.getDirectoryHandle(cat.folder, { create: false }); }
+      catch (e) { continue; }
+      try {
+        for await (const [name, handle] of dirHandle.entries()) {
+          if (handle.kind !== 'file' || !IMAGE_EXT.test(name)) continue;
+          const key = `${cat.key}/${name}`;
+          const existing = existingMap.get(key);
+          if (existing) {
+            if (!existing.synced) {
+              const updated = { ...existing, synced: true };
+              await idbPut('items', updated);
+              setItems(prev => prev.map(i => i.id === existing.id ? updated : i));
+              existingMap.set(key, updated);
+              reconciledCount++;
+            }
+            continue;
+          }
+          try {
+            const file = await handle.getFile();
+            const thumbBlob = await compressImage(file, 360, 0.7);
+            const thumbDataUrl = await blobToDataURL(thumbBlob);
+            const m = name.match(FILENAME_DATE_RE);
+            const dateTaken = m
+              ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])
+              : new Date(file.lastModified || Date.now());
+            const record = {
+              id: uid(), category: cat.key, dateTaken: dateTaken.toISOString(),
+              capturedAt: new Date().toISOString(), filename: name, thumbDataUrl,
+              blob: file, synced: true,
+            };
+            await idbPut('items', record);
+            setItems(prev => [record, ...prev]);
+            existingMap.set(key, record);
+            importedCount++;
+          } catch (err) { console.error('import failed for', name, err); }
+        }
+      } catch (err) { console.error('could not read folder', cat.folder, err); }
+    }
+    setImporting(false);
+    const parts = [];
+    if (importedCount) parts.push(`${importedCount} new`);
+    if (reconciledCount) parts.push(`${reconciledCount} marked synced`);
+    showToast(parts.length ? `Import: ${parts.join(', ')}` : 'No new files found in folder.');
+  };
+
+  /* ── share all pending ── */
+  const shareAllPending = async () => {
+    const pending = items.filter(i => !i.synced);
+    if (!pending.length) { showToast('Nothing pending to share.'); return; }
+    const files = pending.map(i => new File([i.blob], i.filename, { type: 'image/jpeg' }));
+    if (navigator.canShare && navigator.canShare({ files })) {
+      try { await navigator.share({ files, title: `${pending.length} pending item${pending.length > 1 ? 's' : ''}` }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    showToast(`Sharing multiple files isn't supported here — downloading ${pending.length} instead.`);
+    pending.forEach((item, idx) => {
+      setTimeout(() => {
+        const url = URL.createObjectURL(item.blob);
+        const a = document.createElement('a'); a.href = url; a.download = item.filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }, idx * 350);
+    });
+  };
+
   /* ── item mutation ── */
   const updateItem = async (id, patch) => {
     const item = items.find(i => i.id === id);
@@ -542,29 +621,37 @@ function App() {
             <h1>Paper Trail</h1>
             <span className="tag">snap · sort · sync</span>
           </div>
-          <div className="topbar-actions">
-            {rootHandle && !needsReconnect && (
-              <button className="pill-btn stamp" onClick={syncNow} disabled={syncing}>
-                {syncing ? `Syncing ${syncProgress ? `${syncProgress.done}/${syncProgress.total}` : ''}` : (pendingCount > 0 ? `Sync · ${pendingCount}` : 'Synced')}
-              </button>
-            )}
-            {rootHandle && needsReconnect && (
-              <button className="pill-btn" onClick={reconnectFolder}>⚠ Reconnect</button>
-            )}
-            {!rootHandle && fsaSupported && (
-              <button className="pill-btn" onClick={connectFolder}>Connect folder</button>
-            )}
-            <button className="icon-btn" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
-              {theme === 'light' ? '🌙' : '☀️'}
+          <button className="icon-btn" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} aria-label="Toggle theme">
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+        </div>
+        <div className="pill-row" style={{ marginTop: 10 }}>
+          {rootHandle && !needsReconnect && (
+            <button className="pill-btn stamp" onClick={syncNow} disabled={syncing || importing}>
+              {syncing ? `Syncing ${syncProgress ? `${syncProgress.done}/${syncProgress.total}` : ''}` : (pendingCount > 0 ? `Sync · ${pendingCount}` : 'Synced')}
             </button>
-          </div>
+          )}
+          {rootHandle && !needsReconnect && (
+            <button className="pill-btn" onClick={importFromFolder} disabled={syncing || importing}>
+              {importing ? 'Importing…' : 'Import from folder'}
+            </button>
+          )}
+          {rootHandle && needsReconnect && (
+            <button className="pill-btn" onClick={reconnectFolder}>⚠ Reconnect</button>
+          )}
+          {!rootHandle && fsaSupported && (
+            <button className="pill-btn" onClick={connectFolder}>Connect folder</button>
+          )}
+          {pendingCount > 0 && (
+            <button className="pill-btn" onClick={shareAllPending}>↗ Share all pending · {pendingCount}</button>
+          )}
         </div>
         {rootHandle && !needsReconnect && (
-          <div className="helper-line">Linked to “{rootName}” — items save here first, then <a onClick={syncNow}>sync</a> sends them to your OneDrive folder.</div>
+          <div className="helper-line">Linked to “{rootName}” — <a onClick={syncNow}>Sync</a> sends new items there, <a onClick={importFromFolder}>Import</a> pulls in anything added another way (like a phone share).</div>
         )}
         {!rootHandle && (
           <div className="helper-line">
-            {fsaSupported ? 'Connect the folder your OneDrive app syncs on this computer to send items there automatically.' : "This browser can't link a folder — snap items here, then use Share or Download on each one to move it to OneDrive."}
+            {fsaSupported ? 'Connect the folder your OneDrive app syncs on this computer to send items there automatically.' : "This browser can't link a folder — snap items here, then use Share or Download (single item, or all pending at once) to move them to OneDrive."}
           </div>
         )}
       </div>
