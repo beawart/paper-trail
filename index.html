@@ -206,13 +206,18 @@
   </div>
   <div class="pill-row">
     <span class="pill">OneDrive</span>
-    <span class="pill">Shared folder</span>
+    <span class="pill">Apps/PaperTrail</span>
   </div>
 </header>
 
 <div class="card">
   <h2>Connect folder</h2>
-  <p>Connect the folder where your OneDrive app syncs on this device. Items you snap or upload will automatically appear there.</p>
+  <p>
+    On desktop, connect the local OneDrive folder where your files sync:<br>
+    <strong>OneDrive/Apps/PaperTrail</strong><br><br>
+    On mobile, use <strong>Share → OneDrive → Apps/PaperTrail</strong> to upload.  
+    After OneDrive syncs, tap Refresh here to see them.
+  </p>
   <div class="row" style="margin-top:8px;">
     <button id="btnPick" class="primary">Connect folder</button>
     <button id="btnClear" class="ghost">Clear</button>
@@ -239,7 +244,7 @@
   <div class="row" style="margin-top:8px;">
     <button id="btnUpload" class="primary">Upload files</button>
     <button id="btnRefresh">Refresh</button>
-    <input id="fileInput" type="file" multiple />
+    <input id="fileInput" type="file" multiple accept="image/*,application/pdf" />
   </div>
 </div>
 
@@ -277,8 +282,8 @@
 
 <footer>
   <small>
-    Pick the same OneDrive folder on each device (desktop or mobile).  
-    Files you upload here are stored in that shared folder, so you see the same items everywhere.
+    Desktop: use Chrome/Edge, click <strong>Connect folder</strong>, and select your local OneDrive <strong>Apps/PaperTrail</strong> folder.<br>
+    Mobile: use <strong>Share → OneDrive → Apps/PaperTrail</strong>. After sync, tap <strong>Refresh</strong> here to see your files.
   </small>
 </footer>
 
@@ -393,7 +398,7 @@ function render(){
 
 async function restoreHandle(){
   if(!('showDirectoryPicker' in window)){
-    out('Your browser does not support the folder picker. Use Chrome or Edge.');
+    out('Your browser does not support the folder picker. Use Chrome or Edge on desktop.');
     return;
   }
   try{
@@ -401,10 +406,10 @@ async function restoreHandle(){
     if(stored){
       dirHandle = stored;
       folderNameEl.textContent = `Connected: ${dirHandle.name || 'folder'}`;
-      out('Folder connected. Upload files or refresh to see items.');
+      out('Folder connected. Upload files or tap Refresh to see items.');
       await refresh();
     }else{
-      out('No folder connected. Tap “Connect folder” to choose your OneDrive folder.');
+      out('No folder connected. Tap “Connect folder” and choose your local OneDrive Apps/PaperTrail folder.');
     }
   }catch(e){
     console.warn('restoreHandle failed',e);
@@ -539,6 +544,8 @@ document.querySelectorAll('.bottom-cat').forEach(cat=>{
     document.querySelectorAll('.chip[data-cat]').forEach(c=>{
       c.classList.toggle('active',c.dataset.cat===target);
     });
+    // also open camera/upload
+    fileInput.click();
     render();
   });
 });
