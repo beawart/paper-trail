@@ -124,33 +124,55 @@
   }
   #grid{
     margin-top:10px;
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    display:flex;
+    flex-direction:column;
     gap:10px;
   }
-  .item-card{
+  .month-section{
     background:#fff;
     border-radius:10px;
     border:1px solid #dde3f0;
     padding:8px;
-    font-size:11px;
   }
-  .item-name{
+  .month-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    cursor:pointer;
+    font-size:12px;
+  }
+  .month-title{
     font-weight:600;
-    margin-bottom:4px;
-    word-break:break-all;
   }
-  .item-meta{
-    color:#667;
-    margin-bottom:4px;
+  .thumb-grid{
+    margin-top:8px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
   }
-  .item-category{
+  .thumb-card{
+    width:100px;
     font-size:10px;
+  }
+  .thumb-card img{
+    width:80px;
+    height:80px;
+    object-fit:cover;
+    border-radius:8px;
+    border:1px solid #dde3f0;
+    display:block;
+    margin-bottom:4px;
+  }
+  .thumb-name{
+    word-break:break-all;
+    margin-bottom:2px;
+  }
+  .thumb-category{
+    font-size:9px;
     padding:2px 6px;
     border-radius:999px;
     border:1px solid #dde3f0;
     display:inline-block;
-    margin-top:2px;
   }
   .empty{
     text-align:center;
@@ -261,6 +283,30 @@
     border-radius:999px;
     border:1px solid #334155;
   }
+  .item-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+  }
+  .item-modal-inner{
+    background:#fff;
+    border-radius:12px;
+    padding:12px;
+    max-width:360px;
+    width:90%;
+    font-size:12px;
+  }
+  .item-modal-inner img{
+    width:100%;
+    max-height:260px;
+    object-fit:contain;
+    border-radius:8px;
+    margin-bottom:8px;
+  }
 </style>
 </head>
 <body>
@@ -313,13 +359,41 @@ async function idbDel(key){
   });
 }
 
-function guessCategory(name){
+function guessCategoryFromName(name){
   const n = name.toLowerCase();
+  if(n.startsWith('receipt-')) return 'Receipt';
+  if(n.startsWith('card-')) return 'Card';
+  if(n.startsWith('id-')) return 'ID';
+  if(n.startsWith('warranty-')) return 'Warranty';
   if(n.includes('receipt')) return 'Receipt';
   if(n.includes('card')) return 'Card';
   if(n.includes('id')) return 'ID';
   if(n.includes('warranty')) return 'Warranty';
   return 'Misc';
+}
+
+function monthLabel(monthKey){
+  // monthKey: "2024-08"
+  const [y,m] = monthKey.split('-');
+  const date = new Date(Number(y), Number(m)-1, 1);
+  return date.toLocaleString(undefined,{ month:'long', year:'numeric' });
+}
+
+function extractMonthFromDate(dateStr){
+  // dateStr: "2024-08-16"
+  if(!dateStr || dateStr.length < 7) return 'Unknown';
+  return dateStr.slice(0,7); // "YYYY-MM"
+}
+
+function parseDateFromFilename(name){
+  // receipt-2024-08-16T22-10-55-123Z.jpg
+  const parts = name.split('-');
+  if(parts.length < 4) return '';
+  const year = parts[1];
+  const month = parts[2];
+  const day = parts[3].split('T')[0];
+  if(!year || !month || !day) return '';
+  return `${year}-${month}-${day}`;
 }
 
 function CameraModal({ category, onClose, onCaptured }) {
@@ -376,11 +450,13 @@ function CameraModal({ category, onClose, onCaptured }) {
         setMessage('Capture failed. Try again.');
         return;
       }
-      const file = new File([blob], `papertrail-${Date.now()}.jpg`, { type:'image/jpeg' });
+      const iso = new Date().toISOString().replace(/[:.]/g,'-');
+      const fileName = `${category.toLowerCase()}-${iso}.jpg`;
+      const file = new File([blob], fileName, { type:'image/jpeg' });
       setCapturedFile(file);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
-      onCaptured && onCaptured({ file, url, category });
+      onCaptured && onCaptured({ file, url, category, fileName });
     },'image/jpeg',0.9);
   }
 
@@ -444,6 +520,8 @@ function App(){
   const [activeStatus,setActiveStatus] = useState('any');
   const [query,setQuery] = useState('');
   const [cameraCategory,setCameraCategory] = useState(null);
+  const [expandedMonths,setExpandedMonths] = useState(new Set());
+  const [selectedItem,setSelectedItem] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(()=>{
@@ -508,13 +586,18 @@ function App(){
         await writable.write(file);
         await writable.close();
         const now = new Date();
+        const dateStr = now.toISOString().slice(0,10);
+        const monthKey = extractMonthFromDate(dateStr);
+        const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
         newItems.push({
           name:file.name,
           size:file.size,
           type:file.type,
-          category:guessCategory(file.name),
+          category:guessCategoryFromName(file.name),
           status:'pending',
-          date:now.toISOString().slice(0,10)
+          date:dateStr,
+          month:monthKey,
+          previewUrl
         });
         count++;
       }
@@ -538,13 +621,22 @@ function App(){
       for await (const entry of handle.values()){
         if(entry.kind==='file'){
           const file = await entry.getFile();
+          const name = file.name;
+          let dateStr = parseDateFromFilename(name);
+          if(!dateStr && file.lastModified){
+            dateStr = new Date(file.lastModified).toISOString().slice(0,10);
+          }
+          const monthKey = extractMonthFromDate(dateStr);
+          const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
           newItems.push({
-            name:file.name,
+            name,
             size:file.size,
             type:file.type,
-            category:guessCategory(file.name),
+            category:guessCategoryFromName(name),
             status:'synced',
-            date:file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : ''
+            date:dateStr,
+            month:monthKey,
+            previewUrl
           });
         }
       }
@@ -570,6 +662,17 @@ function App(){
     return list;
   }
 
+  function groupedByMonth(){
+    const list = filteredItems();
+    const groups = {};
+    for(const i of list){
+      const key = i.month || 'Unknown';
+      if(!groups[key]) groups[key] = [];
+      groups[key].push(i);
+    }
+    return groups;
+  }
+
   const total = items.length;
   const pendingCount = items.filter(i=>i.status==='pending').length;
 
@@ -578,9 +681,24 @@ function App(){
     setCameraCategory(cat);
   }
 
-  function onCapturedSnap({ file, url, category }){
-    // Just keep local preview; upload is via Share (outside app).
-    // Optionally, we could add it to items as a "local" entry.
+  function onCapturedSnap({ file, url, category, fileName }){
+    // Mobile flow: file is shared via OneDrive; desktop will see it after sync.
+    // We don't add it to items here because it lives in OneDrive, not local.
+  }
+
+  function toggleMonth(key){
+    const next = new Set(expandedMonths);
+    if(next.has(key)) next.delete(key);
+    else next.add(key);
+    setExpandedMonths(next);
+  }
+
+  function openItemModal(item){
+    setSelectedItem(item);
+  }
+
+  function closeItemModal(){
+    setSelectedItem(null);
   }
 
   return (
@@ -668,18 +786,27 @@ function App(){
       </div>
 
       <div id="grid">
-        {filteredItems().map((i,idx)=>(
-          <div key={idx} className="item-card">
-            <div className="item-name">{i.name}</div>
-            <div className="item-meta">
-              {(i.type || 'unknown') + ' • ' + (i.size/1024).toFixed(1) + ' KB'}
+        {Object.entries(groupedByMonth()).map(([monthKey, list])=>(
+          <div key={monthKey} className="month-section">
+            <div className="month-header" onClick={()=>toggleMonth(monthKey)}>
+              <span className="month-title">{monthLabel(monthKey)}</span>
+              <span style={{fontSize:11, color:'#667'}}>
+                {list.length} item{list.length!==1?'s':''} · {expandedMonths.has(monthKey) ? '▼' : '▸'}
+              </span>
             </div>
-            {i.date && <div className="item-meta">{i.date}</div>}
-            <div className="item-category">{i.category || 'Misc'}</div>
-            <div className="item-meta">
-              <span className={'status-dot ' + (i.status==='pending'?'pending':'synced')}></span>
-              {i.status==='pending'?'Pending':'Synced'}
-            </div>
+            {expandedMonths.has(monthKey) && (
+              <div className="thumb-grid">
+                {list.map((i,idx)=>(
+                  <div key={idx} className="thumb-card" onClick={()=>openItemModal(i)}>
+                    {i.previewUrl && (
+                      <img src={i.previewUrl} alt={i.name} />
+                    )}
+                    <div className="thumb-name">{i.name}</div>
+                    <div className="thumb-category">{i.category}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -716,7 +843,7 @@ function App(){
       <footer>
         <small>
           Mobile: use the bottom categories to open the camera, capture, then Share → OneDrive → Apps/PaperTrail.<br/>
-          Desktop: connect your local OneDrive Apps/PaperTrail folder and tap Refresh to see mobile uploads.
+          Desktop: connect your local OneDrive Apps/PaperTrail folder and tap Refresh to see mobile uploads, grouped by month.
         </small>
       </footer>
 
@@ -726,6 +853,34 @@ function App(){
           onClose={()=>setCameraCategory(null)}
           onCaptured={onCapturedSnap}
         />
+      )}
+
+      {selectedItem && (
+        <div className="item-modal" onClick={closeItemModal}>
+          <div className="item-modal-inner" onClick={e=>e.stopPropagation()}>
+            {selectedItem.previewUrl && (
+              <img src={selectedItem.previewUrl} alt={selectedItem.name} />
+            )}
+            <div><strong>{selectedItem.name}</strong></div>
+            <div style={{marginTop:4}}>
+              {selectedItem.type || 'unknown'} • {(selectedItem.size/1024).toFixed(1)} KB
+            </div>
+            {selectedItem.date && (
+              <div style={{marginTop:2}}>Date: {selectedItem.date}</div>
+            )}
+            <div style={{marginTop:2}}>
+              Category: <span className="thumb-category">{selectedItem.category}</span>
+            </div>
+            <div style={{marginTop:2}}>
+              Status:{' '}
+              <span className={'status-dot ' + (selectedItem.status==='pending'?'pending':'synced')}></span>
+              {selectedItem.status==='pending'?'Pending':'Synced'}
+            </div>
+            <div style={{marginTop:8, textAlign:'right'}}>
+              <button onClick={closeItemModal}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
