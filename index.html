@@ -3,363 +3,549 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>OneDrive Date App</title>
+<title>Paper Trail</title>
 <style>
-  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;line-height:1.45}
-  body{max-width:900px;margin:28px auto;padding:20px;border-radius:12px;background:#fbfdff;color:#0b1220}
-  h1{margin:0 0 6px;font-size:20px}
-  p{margin:8px 0;color:#334}
-  .row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-  button{padding:10px 12px;border-radius:8px;border:1px solid #cfd6e3;background:#fff;cursor:pointer}
-  button.primary{background:#0b66ff;color:#fff;border-color:#0b66ff}
-  button.ghost{background:transparent}
-  input[type=text], select{padding:8px;border-radius:8px;border:1px solid #cfd6e3;min-width:220px}
-  .info{background:#fff;padding:12px;border-radius:8px;border:1px solid #e6e9f2}
-  pre{background:#0f1724;color:#e6eef8;padding:12px;border-radius:8px;overflow:auto}
-  small{color:#556}
-  .ok{color:green;font-weight:700}
-  .bad{color:#b33;font-weight:700}
-  .muted{color:#556}
-  #dropzone{border:2px dashed #d6e0ff;padding:14px;border-radius:10px;text-align:center;color:#445;cursor:pointer}
-  footer{margin-top:18px;font-size:13px;color:#556}
-  label{display:inline-block;margin-right:8px}
-  .flex-between{display:flex;justify-content:space-between;align-items:center}
+  :root{
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    line-height:1.4;
+    color:#222;
+  }
+  body{
+    max-width:960px;
+    margin:24px auto;
+    padding:16px 16px 24px;
+    background:#f5f7fa;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+  }
+  header .title{
+    font-size:18px;
+    font-weight:600;
+  }
+  header .subtitle{
+    font-size:12px;
+    color:#667;
+  }
+  .pill-row{
+    display:flex;
+    gap:6px;
+    font-size:11px;
+    color:#667;
+  }
+  .pill{
+    padding:3px 8px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    background:#fff;
+  }
+  .card{
+    background:#fff;
+    border-radius:12px;
+    border:1px solid #dde3f0;
+    padding:12px;
+    margin-bottom:12px;
+  }
+  .card h2{
+    margin:0 0 6px;
+    font-size:14px;
+    font-weight:600;
+  }
+  .card p{
+    margin:4px 0;
+    font-size:12px;
+    color:#445;
+  }
+  button{
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid #cfd6e3;
+    background:#fff;
+    font-size:12px;
+    cursor:pointer;
+  }
+  button.primary{
+    background:#2563eb;
+    border-color:#2563eb;
+    color:#fff;
+  }
+  button.ghost{
+    background:transparent;
+  }
+  input[type="search"]{
+    width:100%;
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    font-size:12px;
+    margin-bottom:8px;
+    background:#fff;
+  }
+  .filters{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .chip{
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    background:#fff;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .chip.active{
+    background:#2563eb;
+    border-color:#2563eb;
+    color:#fff;
+  }
+  .status-row{
+    display:flex;
+    gap:6px;
+    margin-top:4px;
+  }
+  .status-dot{
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    display:inline-block;
+    margin-right:4px;
+  }
+  .status-dot.pending{background:#f97316;}
+  .status-dot.synced{background:#22c55e;}
+  #output{
+    font-size:12px;
+    color:#445;
+    margin-top:6px;
+  }
+  #grid{
+    margin-top:10px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:10px;
+  }
+  .item-card{
+    background:#fff;
+    border-radius:10px;
+    border:1px solid #dde3f0;
+    padding:8px;
+    font-size:11px;
+  }
+  .item-name{
+    font-weight:600;
+    margin-bottom:4px;
+    word-break:break-all;
+  }
+  .item-meta{
+    color:#667;
+    margin-bottom:4px;
+  }
+  .item-category{
+    font-size:10px;
+    padding:2px 6px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    display:inline-block;
+    margin-top:2px;
+  }
+  .empty{
+    text-align:center;
+    padding:24px 12px;
+    color:#667;
+    font-size:12px;
+  }
+  .empty-icon{
+    font-size:32px;
+    margin-bottom:8px;
+  }
+  .bottom-bar{
+    margin-top:16px;
+    display:flex;
+    justify-content:space-around;
+    padding:10px 8px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    background:#fff;
+    font-size:11px;
+  }
+  .bottom-cat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  .bottom-circle{
+    width:28px;
+    height:28px;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    border:1px solid #dde3f0;
+    background:#f9fafb;
+  }
+  footer{
+    margin-top:16px;
+    font-size:11px;
+    color:#667;
+  }
+  input[type="file"]{display:none;}
 </style>
 </head>
 <body>
-  <h1>OneDrive Date App</h1>
-  <p class="info">
-    This single-file app writes and reads a simple ISO date file (default <strong>last_run_date.txt</strong>) into a folder you choose (pick a folder inside your OneDrive sync folder). It preserves the original upload/download features and adds better cross-device handling.
-  </p>
-
-  <div class="row">
-    <button id="btnPick">Pick Folder</button>
-    <button id="btnClear">Clear Saved Folder</button>
-    <span id="folderName" style="align-self:center" class="muted"></span>
+<header>
+  <div>
+    <div class="title">Paper Trail</div>
+    <div class="subtitle">snap · sort · sync</div>
   </div>
-
-  <div class="row">
-    <label for="fileName">Filename</label>
-    <input id="fileName" type="text" value="last_run_date.txt" />
-    <label for="tz">Date</label>
-    <select id="tz" title="Choose local or UTC">
-      <option value="local">Local</option>
-      <option value="utc">UTC</option>
-    </select>
+  <div class="pill-row">
+    <span class="pill">OneDrive</span>
+    <span class="pill">Shared folder</span>
   </div>
+</header>
 
-  <div class="row">
-    <button id="btnSave" class="primary">Save Today</button>
-    <button id="btnRead">Read Saved</button>
-    <button id="btnCompare">Compare With Today</button>
-    <button id="btnDownload">Download File</button>
-    <button id="btnUpload" class="ghost">Upload File</button>
+<div class="card">
+  <h2>Connect folder</h2>
+  <p>Connect the folder where your OneDrive app syncs on this device. Items you snap or upload will automatically appear there.</p>
+  <div class="row" style="margin-top:8px;">
+    <button id="btnPick" class="primary">Connect folder</button>
+    <button id="btnClear" class="ghost">Clear</button>
+    <span id="folderName" class="muted" style="margin-left:8px;"></span>
   </div>
+  <div id="output"></div>
+</div>
 
-  <div class="row">
-    <div id="dropzone" style="flex:1">Drag a file here or click to choose a file to upload (fallback for browsers without folder access)</div>
-    <input id="fileInput" type="file" style="display:none" />
+<div class="card">
+  <input id="search" type="search" placeholder="Search by filename or date…" />
+  <div class="filters">
+    <span class="chip active" data-cat="all">All</span>
+    <span class="chip" data-cat="Receipt">Receipt</span>
+    <span class="chip" data-cat="Card">Card</span>
+    <span class="chip" data-cat="ID">ID</span>
+    <span class="chip" data-cat="Warranty">Warranty</span>
+    <span class="chip" data-cat="Misc">Misc</span>
   </div>
-
-  <div id="output" class="info" style="min-height:96px;margin-top:12px"></div>
-
-  <hr />
-
-  <div class="info">
-    <div class="flex-between"><strong>Behavior</strong><small class="muted">Pick a folder once; the app will remember it (IndexedDB). If your browser doesn't support folder access, use upload/download.</small></div>
-    <ul>
-      <li><strong>Save Today</strong> writes an ISO date string to the chosen folder (or downloads file if no folder).</li>
-      <li><strong>Read Saved</strong> reads the file from the chosen folder or from an uploaded file.</li>
-      <li><strong>Compare</strong> compares the saved date with today's date.</li>
-      <li><strong>Upload</strong> lets you select a file to be read by the app (useful on mobile or unsupported browsers).</li>
-    </ul>
+  <div class="status-row">
+    <span class="chip active" data-status="any">Any status</span>
+    <span class="chip" data-status="pending"><span class="status-dot pending"></span>Pending</span>
+    <span class="chip" data-status="synced"><span class="status-dot synced"></span>Synced</span>
   </div>
+  <div class="row" style="margin-top:8px;">
+    <button id="btnUpload" class="primary">Upload files</button>
+    <button id="btnRefresh">Refresh</button>
+    <input id="fileInput" type="file" multiple />
+  </div>
+</div>
 
-  <footer>
-    <small>Tip: choose a folder inside your OneDrive sync folder so the file syncs across devices. On iOS use the upload/download flow to move the file into OneDrive.</small>
-  </footer>
+<div id="grid"></div>
+
+<div id="emptyState" class="empty">
+  <div class="empty-icon">📦</div>
+  <div>Nothing filed yet.</div>
+  <div>Tap a category below to snap your first item.</div>
+  <div style="margin-top:6px;">0 total · 0 pending sync</div>
+</div>
+
+<div class="bottom-bar">
+  <div class="bottom-cat" data-cat="Receipt">
+    <div class="bottom-circle">🧾</div>
+    <div>Receipt</div>
+  </div>
+  <div class="bottom-cat" data-cat="Card">
+    <div class="bottom-circle">💳</div>
+    <div>Card</div>
+  </div>
+  <div class="bottom-cat" data-cat="ID">
+    <div class="bottom-circle">🪪</div>
+    <div>ID</div>
+  </div>
+  <div class="bottom-cat" data-cat="Warranty">
+    <div class="bottom-circle">🔧</div>
+    <div>Warranty</div>
+  </div>
+  <div class="bottom-cat" data-cat="Misc">
+    <div class="bottom-circle">📦</div>
+    <div>Misc</div>
+  </div>
+</div>
+
+<footer>
+  <small>
+    Pick the same OneDrive folder on each device (desktop or mobile).  
+    Files you upload here are stored in that shared folder, so you see the same items everywhere.
+  </small>
+</footer>
 
 <script>
-/* IndexedDB small wrapper */
-const DB = 'onedrive-date-app';
-const STORE = 'handles';
-function idbOpen() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(STORE);
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
-}
-async function idbPut(key, value) {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(value, key);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
-}
-async function idbGet(key) {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).get(key);
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
-  });
-}
-async function idbDel(key) {
-  const db = await idbOpen();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(key);
-    tx.oncomplete = () => res();
-    tx.onerror = () => rej(tx.error);
-  });
-}
-
-/* UI elements */
-const outEl = document.getElementById('output');
-const folderNameEl = document.getElementById('folderName');
-const fileNameInput = document.getElementById('fileName');
-const tzSelect = document.getElementById('tz');
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-
-const HANDLE_KEY = 'onedrive_dir_handle_v1';
+const HANDLE_KEY = 'papertrail_onedrive_folder_v1';
 let dirHandle = null;
-let uploadedFileText = null; // fallback content from upload
+let items = []; // {name, size, type, category, status, date}
 
-function log(html) { outEl.innerHTML = html; }
-
-/* Date helpers */
-function isoToday(useUtc=false) {
-  const d = new Date();
-  if (useUtc) return d.toISOString().slice(0,10);
-  // local date in YYYY-MM-DD
-  const tzOffset = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - tzOffset*60000);
-  return local.toISOString().slice(0,10);
+/* IndexedDB wrapper */
+const DB = 'papertrail-onedrive';
+const STORE = 'handles';
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open(DB,1);
+    r.onupgradeneeded = ()=>r.result.createObjectStore(STORE);
+    r.onsuccess = ()=>res(r.result);
+    r.onerror = ()=>rej(r.error);
+  });
+}
+async function idbPut(key,value){
+  const db = await idbOpen();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(value,key);
+    tx.oncomplete = ()=>res();
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(STORE,'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = ()=>res(req.result);
+    req.onerror = ()=>rej(req.error);
+  });
+}
+async function idbDel(key){
+  const db = await idbOpen();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(key);
+    tx.oncomplete = ()=>res();
+    tx.onerror = ()=>rej(tx.error);
+  });
 }
 
-/* File system helpers */
-async function writeFileToDir(filename, contents) {
-  if (!dirHandle) throw new Error('No directory handle');
-  const fh = await dirHandle.getFileHandle(filename, { create: true });
-  const writable = await fh.createWritable();
-  await writable.write(contents);
-  await writable.close();
-  return fh;
-}
-async function readFileFromDir(filename) {
-  if (!dirHandle) throw new Error('No directory handle');
-  const fh = await dirHandle.getFileHandle(filename);
-  const file = await fh.getFile();
-  return await file.text();
-}
+const out = msg => document.getElementById('output').innerHTML = msg;
+const folderNameEl = document.getElementById('folderName');
+const gridEl = document.getElementById('grid');
+const emptyEl = document.getElementById('emptyState');
+const fileInput = document.getElementById('fileInput');
+const searchInput = document.getElementById('search');
 
-/* Restore saved handle */
-async function restoreHandle() {
-  if (!('showDirectoryPicker' in window)) return;
-  try {
-    const stored = await idbGet(HANDLE_KEY);
-    if (stored) {
-      dirHandle = stored;
-      folderNameEl.textContent = `Saved folder: ${dirHandle.name || 'picked folder'}`;
-      log('Ready. Use Save Today to write the date into the selected folder.');
-    } else {
-      log('No folder selected yet. Click Pick Folder and choose a folder inside your OneDrive sync folder.');
-    }
-  } catch (e) {
-    console.warn('restoreHandle failed', e);
+function render(){
+  gridEl.innerHTML = '';
+  const query = searchInput.value.trim().toLowerCase();
+  const activeCat = document.querySelector('.chip[data-cat].active')?.dataset.cat || 'all';
+  const activeStatus = document.querySelector('.chip[data-status].active')?.dataset.status || 'any';
+
+  let filtered = items.slice();
+  if(activeCat !== 'all'){
+    filtered = filtered.filter(i=>i.category===activeCat);
   }
+  if(activeStatus !== 'any'){
+    filtered = filtered.filter(i=>i.status===activeStatus);
+  }
+  if(query){
+    filtered = filtered.filter(i=>i.name.toLowerCase().includes(query) || (i.date||'').includes(query));
+  }
+
+  if(filtered.length===0){
+    emptyEl.style.display = 'block';
+  }else{
+    emptyEl.style.display = 'none';
+  }
+
+  filtered.forEach(i=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    const name = document.createElement('div');
+    name.className = 'item-name';
+    name.textContent = i.name;
+    const meta = document.createElement('div');
+    meta.className = 'item-meta';
+    meta.textContent = `${i.type || 'unknown'} • ${(i.size/1024).toFixed(1)} KB`;
+    const date = document.createElement('div');
+    date.className = 'item-meta';
+    date.textContent = i.date || '';
+    const cat = document.createElement('div');
+    cat.className = 'item-category';
+    cat.textContent = i.category || 'Misc';
+    const status = document.createElement('div');
+    status.className = 'item-meta';
+    const dot = document.createElement('span');
+    dot.className = 'status-dot ' + (i.status==='pending'?'pending':'synced');
+    status.appendChild(dot);
+    status.appendChild(document.createTextNode(i.status==='pending'?'Pending':'Synced'));
+
+    card.appendChild(name);
+    card.appendChild(meta);
+    if(i.date) card.appendChild(date);
+    card.appendChild(cat);
+    card.appendChild(status);
+    gridEl.appendChild(card);
+  });
+
+  const total = items.length;
+  const pending = items.filter(i=>i.status==='pending').length;
+  emptyEl.querySelector('div:last-child').textContent = `${total} total · ${pending} pending sync`;
 }
 
-/* Pick folder */
-async function pickFolder() {
-  if (!('showDirectoryPicker' in window)) {
-    log('<span class="bad">Directory picker not supported in this browser.</span> Use Upload or Download fallback.');
+async function restoreHandle(){
+  if(!('showDirectoryPicker' in window)){
+    out('Your browser does not support the folder picker. Use Chrome or Edge.');
     return;
   }
-  try {
-    const handle = await window.showDirectoryPicker();
-    dirHandle = handle;
-    await idbPut(HANDLE_KEY, handle);
-    folderNameEl.textContent = `Saved folder: ${handle.name || 'picked folder'}`;
-    log('<span class="ok">Folder selected and saved.</span>');
-  } catch (e) {
-    log(`<span class="bad">Folder pick cancelled or failed: ${e.message}</span>`);
+  try{
+    const stored = await idbGet(HANDLE_KEY);
+    if(stored){
+      dirHandle = stored;
+      folderNameEl.textContent = `Connected: ${dirHandle.name || 'folder'}`;
+      out('Folder connected. Upload files or refresh to see items.');
+      await refresh();
+    }else{
+      out('No folder connected. Tap “Connect folder” to choose your OneDrive folder.');
+    }
+  }catch(e){
+    console.warn('restoreHandle failed',e);
   }
 }
 
-/* Clear saved folder */
-async function clearSavedFolder() {
+async function pickFolder(){
+  if(!('showDirectoryPicker' in window)){
+    out('<span class="bad">Folder picker not supported in this browser.</span>');
+    return;
+  }
+  try{
+    const handle = await window.showDirectoryPicker();
+    dirHandle = handle;
+    await idbPut(HANDLE_KEY,handle);
+    folderNameEl.textContent = `Connected: ${handle.name || 'folder'}`;
+    out('<span class="ok">Folder connected.</span>');
+    await refresh();
+  }catch(e){
+    out(`<span class="bad">Folder pick cancelled or failed: ${e.message}</span>`);
+  }
+}
+
+async function clearFolder(){
   dirHandle = null;
   await idbDel(HANDLE_KEY);
   folderNameEl.textContent = '';
-  log('Saved folder cleared. Use Pick Folder to choose again.');
+  items = [];
+  render();
+  out('Folder connection cleared.');
 }
 
-/* Save today */
-async function saveToday() {
-  const filename = (fileNameInput.value || 'last_run_date.txt').trim();
-  const useUtc = tzSelect.value === 'utc';
-  const date = isoToday(useUtc) + '\n';
-  if (dirHandle && 'requestPermission' in dirHandle) {
-    try {
-      const perm = await dirHandle.requestPermission({ mode: 'readwrite' });
-      if (perm === 'denied') throw new Error('Permission denied for folder');
-      await writeFileToDir(filename, date);
-      log(`<span class="ok">Saved ${date.trim()} to <strong>${filename}</strong> in folder <strong>${dirHandle.name}</strong>.</span>`);
-      return;
-    } catch (e) {
-      log(`<span class="bad">Write failed: ${e.message}</span>`);
-      return;
-    }
-  }
-  // Fallback: download file
-  const blob = new Blob([date], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  log(`<span class="ok">Downloaded ${filename}. Upload it to OneDrive or move it into your OneDrive folder to sync.</span>`);
-}
-
-/* Read saved */
-async function readSaved() {
-  const filename = (fileNameInput.value || 'last_run_date.txt').trim();
-  if (dirHandle) {
-    try {
-      const perm = await dirHandle.requestPermission({ mode: 'read' });
-      if (perm === 'denied') throw new Error('Permission denied for folder');
-      const text = await readFileFromDir(filename);
-      log(`<strong>Contents of ${filename}:</strong><pre>${text.replace(/\r/g,'')}</pre>`);
-      return;
-    } catch (e) {
-      log(`<span class="bad">Read failed: ${e.message}</span>`);
-      return;
-    }
-  }
-  if (uploadedFileText !== null) {
-    log(`<strong>Contents of uploaded file:</strong><pre>${uploadedFileText.replace(/\r/g,'')}</pre>`);
+async function uploadFiles(files){
+  if(!dirHandle){
+    out('<span class="bad">No folder connected. Connect a folder first.</span>');
     return;
   }
-  log('<span class="bad">No folder selected and no uploaded file. Use Pick Folder or Upload a file.</span>');
-}
-
-/* Compare */
-async function compareWithToday() {
-  const filename = (fileNameInput.value || 'last_run_date.txt').trim();
-  const today = isoToday(tzSelect.value === 'utc');
-  let saved = null;
-  if (dirHandle) {
-    try {
-      const perm = await dirHandle.requestPermission({ mode: 'read' });
-      if (perm === 'denied') throw new Error('Permission denied for folder');
-      const text = await readFileFromDir(filename);
-      saved = text.trim().split(/\s+/)[0];
-    } catch (e) {
-      log(`<span class="bad">Compare failed: ${e.message}</span>`);
-      return;
+  try{
+    const perm = await dirHandle.requestPermission({mode:'readwrite'});
+    if(perm==='denied') throw new Error('Permission denied for folder');
+    let count = 0;
+    for(const file of files){
+      const fh = await dirHandle.getFileHandle(file.name,{create:true});
+      const writable = await fh.createWritable();
+      await writable.write(file);
+      await writable.close();
+      const now = new Date();
+      items.push({
+        name:file.name,
+        size:file.size,
+        type:file.type,
+        category:guessCategory(file.name),
+        status:'pending',
+        date:now.toISOString().slice(0,10)
+      });
+      count++;
     }
-  } else if (uploadedFileText !== null) {
-    saved = uploadedFileText.trim().split(/\s+/)[0];
-  } else {
-    log('<span class="bad">No folder selected and no uploaded file. Use Pick Folder or Upload a file.</span>');
-    return;
-  }
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(saved)) {
-    log(`<span class="bad">Saved file does not contain a valid ISO date. Found: ${saved}</span>`);
-    return;
-  }
-  if (saved === today) {
-    log(`<span class="ok">Saved date ${saved} matches today (${today}).</span>`);
-  } else {
-    log(`<div>Saved date: <strong>${saved}</strong><br>Today: <strong>${today}</strong></div>`);
+    out(`<span class="ok">Uploaded ${count} file(s) into ${dirHandle.name}.</span>`);
+    render();
+  }catch(e){
+    out(`<span class="bad">Upload failed: ${e.message}</span>`);
   }
 }
 
-/* Download current saved file from folder or uploaded content */
-async function downloadFile() {
-  const filename = (fileNameInput.value || 'last_run_date.txt').trim();
-  if (dirHandle) {
-    try {
-      const perm = await dirHandle.requestPermission({ mode: 'read' });
-      if (perm === 'denied') throw new Error('Permission denied for folder');
-      const text = await readFileFromDir(filename);
-      const blob = new Blob([text], { type: 'text/plain' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      log(`<span class="ok">Downloaded ${filename} from selected folder.</span>`);
-      return;
-    } catch (e) {
-      log(`<span class="bad">Download failed: ${e.message}</span>`);
-      return;
+function guessCategory(name){
+  const n = name.toLowerCase();
+  if(n.includes('receipt')) return 'Receipt';
+  if(n.includes('card')) return 'Card';
+  if(n.includes('id')) return 'ID';
+  if(n.includes('warranty')) return 'Warranty';
+  return 'Misc';
+}
+
+async function refresh(){
+  items = [];
+  if(!dirHandle){
+    render();
+    return;
+  }
+  try{
+    const perm = await dirHandle.requestPermission({mode:'read'});
+    if(perm==='denied') throw new Error('Permission denied for folder');
+    for await (const entry of dirHandle.values()){
+      if(entry.kind==='file'){
+        const file = await entry.getFile();
+        items.push({
+          name:file.name,
+          size:file.size,
+          type:file.type,
+          category:guessCategory(file.name),
+          status:'synced',
+          date:file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : ''
+        });
+      }
     }
+    out(`Loaded ${items.length} item(s) from ${dirHandle.name}.`);
+    render();
+  }catch(e){
+    out(`<span class="bad">Refresh failed: ${e.message}</span>`);
   }
-  if (uploadedFileText !== null) {
-    const blob = new Blob([uploadedFileText], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    log(`<span class="ok">Downloaded uploaded file as ${filename}.</span>`);
-    return;
-  }
-  log('<span class="bad">No folder selected and no uploaded file to download.</span>');
 }
 
-/* Upload handling (file input and drag/drop) */
-function handleFileObject(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    uploadedFileText = String(reader.result || '');
-    log(`<span class="ok">File loaded into app. Use Read Saved or Compare.</span><pre>${uploadedFileText.replace(/\r/g,'')}</pre>`);
-  };
-  reader.onerror = () => {
-    log('<span class="bad">Failed to read uploaded file.</span>');
-  };
-  reader.readAsText(file);
-}
-
-fileInput.addEventListener('change', (e) => {
-  const f = e.target.files && e.target.files[0];
-  if (f) handleFileObject(f);
+/* UI wiring */
+document.getElementById('btnPick').addEventListener('click',pickFolder);
+document.getElementById('btnClear').addEventListener('click',clearFolder);
+document.getElementById('btnUpload').addEventListener('click',()=>fileInput.click());
+document.getElementById('btnRefresh').addEventListener('click',refresh);
+fileInput.addEventListener('change',e=>{
+  const files = Array.from(e.target.files||[]);
+  if(files.length) uploadFiles(files);
   fileInput.value = '';
 });
+searchInput.addEventListener('input',render);
 
-dropzone.addEventListener('click', () => fileInput.click());
-dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = '#0b66ff'; });
-dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = '#d6e0ff'; });
-dropzone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropzone.style.borderColor = '#d6e0ff';
-  const f = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (f) handleFileObject(f);
+document.querySelectorAll('.chip[data-cat]').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    document.querySelectorAll('.chip[data-cat]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    render();
+  });
+});
+document.querySelectorAll('.chip[data-status]').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    document.querySelectorAll('.chip[data-status]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    render();
+  });
+});
+document.querySelectorAll('.bottom-cat').forEach(cat=>{
+  cat.addEventListener('click',()=>{
+    const target = cat.dataset.cat;
+    document.querySelectorAll('.chip[data-cat]').forEach(c=>{
+      c.classList.toggle('active',c.dataset.cat===target);
+    });
+    render();
+  });
 });
 
-/* Wire buttons */
-document.getElementById('btnPick').addEventListener('click', pickFolder);
-document.getElementById('btnClear').addEventListener('click', clearSavedFolder);
-document.getElementById('btnSave').addEventListener('click', saveToday);
-document.getElementById('btnRead').addEventListener('click', readSaved);
-document.getElementById('btnCompare').addEventListener('click', compareWithToday);
-document.getElementById('btnDownload').addEventListener('click', downloadFile);
-document.getElementById('btnUpload').addEventListener('click', () => fileInput.click());
-
-/* Initialize */
+/* init */
 restoreHandle();
+render();
 </script>
 </body>
 </html>
