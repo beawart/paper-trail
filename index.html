@@ -495,6 +495,10 @@ function App() {
   /* ── import from folder ── */
   const IMAGE_EXT = /\.(jpe?g|png|webp|gif)$/i;
   const FILENAME_DATE_RE = /_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})\./;
+  const categoryFromFilename = (name) => {
+    const found = CATEGORIES.find(c => name.toLowerCase().startsWith(c.label.toLowerCase() + '_'));
+    return found ? found.key : 'misc';
+  };
   const importFromFolder = async () => {
     if (!fsaSupported) { showToast('Folder import needs a desktop browser (Chrome/Edge).'); return; }
     if (!rootHandle) { await connectFolder(); return; }
@@ -504,46 +508,63 @@ function App() {
     setImporting(true);
     const existingMap = new Map(items.map(i => [`${i.category}/${i.filename}`, i]));
     let importedCount = 0, reconciledCount = 0;
-    for (const cat of CATEGORIES) {
-      let dirHandle;
-      try { dirHandle = await rootHandle.getDirectoryHandle(cat.folder, { create: false }); }
-      catch (e) { continue; }
-      try {
-        for await (const [name, handle] of dirHandle.entries()) {
-          if (handle.kind !== 'file' || !IMAGE_EXT.test(name)) continue;
-          const key = `${cat.key}/${name}`;
-          const existing = existingMap.get(key);
-          if (existing) {
-            if (!existing.synced) {
-              const updated = { ...existing, synced: true };
-              await idbPut('items', updated);
-              setItems(prev => prev.map(i => i.id === existing.id ? updated : i));
-              existingMap.set(key, updated);
-              reconciledCount++;
-            }
-            continue;
-          }
-          try {
-            const file = await handle.getFile();
-            const thumbBlob = await compressImage(file, 360, 0.7);
-            const thumbDataUrl = await blobToDataURL(thumbBlob);
-            const m = name.match(FILENAME_DATE_RE);
-            const dateTaken = m
-              ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])
-              : new Date(file.lastModified || Date.now());
-            const record = {
-              id: uid(), category: cat.key, dateTaken: dateTaken.toISOString(),
-              capturedAt: new Date().toISOString(), filename: name, thumbDataUrl,
-              blob: file, synced: true,
-            };
-            await idbPut('items', record);
-            setItems(prev => [record, ...prev]);
-            existingMap.set(key, record);
-            importedCount++;
-          } catch (err) { console.error('import failed for', name, err); }
+
+    const processFile = async (name, handle, category) => {
+      const key = `${category}/${name}`;
+      const existing = existingMap.get(key);
+      if (existing) {
+        if (!existing.synced) {
+          const updated = { ...existing, synced: true };
+          await idbPut('items', updated);
+          setItems(prev => prev.map(i => i.id === existing.id ? updated : i));
+          existingMap.set(key, updated);
+          reconciledCount++;
         }
-      } catch (err) { console.error('could not read folder', cat.folder, err); }
+        return;
+      }
+      try {
+        const file = await handle.getFile();
+        const thumbBlob = await compressImage(file, 360, 0.7);
+        const thumbDataUrl = await blobToDataURL(thumbBlob);
+        const m = name.match(FILENAME_DATE_RE);
+        const dateTaken = m
+          ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6])
+          : new Date(file.lastModified || Date.now());
+        const record = {
+          id: uid(), category, dateTaken: dateTaken.toISOString(),
+          capturedAt: new Date().toISOString(), filename: name, thumbDataUrl,
+          blob: file, synced: true,
+        };
+        await idbPut('items', record);
+        setItems(prev => [record, ...prev]);
+        existingMap.set(key, record);
+        importedCount++;
+      } catch (err) { console.error('import failed for', name, err); }
+    };
+
+    try {
+      // Walk the root folder: pick up loose files directly inside it, plus
+      // files inside any subfolder whose name matches a known category.
+      for await (const [name, handle] of rootHandle.entries()) {
+        if (handle.kind === 'file') {
+          if (!IMAGE_EXT.test(name)) continue;
+          await processFile(name, handle, categoryFromFilename(name));
+        } else if (handle.kind === 'directory') {
+          const catMatch = CATEGORIES.find(c => c.folder.toLowerCase() === name.toLowerCase());
+          if (!catMatch) continue;
+          try {
+            for await (const [subName, subHandle] of handle.entries()) {
+              if (subHandle.kind !== 'file' || !IMAGE_EXT.test(subName)) continue;
+              await processFile(subName, subHandle, catMatch.key);
+            }
+          } catch (err) { console.error('could not read folder', name, err); }
+        }
+      }
+    } catch (err) {
+      console.error('could not read connected folder', err);
+      showToast(`Could not read the folder (${err.name || 'error'}) — try reconnecting.`);
     }
+
     setImporting(false);
     const parts = [];
     if (importedCount) parts.push(`${importedCount} new`);
@@ -732,6 +753,7 @@ function App() {
           onUpdate={updateItem}
           onDelete={deleteItem}
           rootConnected={!!rootHandle && !needsReconnect}
+          rootName={rootName}
           showToast={showToast}
         />
       )}
@@ -742,12 +764,13 @@ function App() {
 }
 
 /* ───────────────────── Detail modal ───────────────────── */
-function DetailModal({ item, onClose, onUpdate, onDelete, showToast }) {
+function DetailModal({ item, onClose, onUpdate, onDelete, rootName, showToast }) {
   const info = catInfo(item.category);
   const d = new Date(item.dateTaken);
   const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const imgUrl = useMemo(() => URL.createObjectURL(item.blob), [item.blob]);
   useEffect(() => () => URL.revokeObjectURL(imgUrl), [imgUrl]);
+  const relativePath = `${info.folder}/${item.filename}`;
 
   const handleDateChange = (e) => {
     const [y, m, day] = e.target.value.split('-').map(Number);
@@ -795,6 +818,9 @@ function DetailModal({ item, onClose, onUpdate, onDelete, showToast }) {
           <div className="status-line">
             <span className="status-dot" style={{ background: item.synced ? '#2F6B4F' : '#B3452F' }}></span>
             {item.synced ? 'Synced to folder' : 'Saved locally — not yet synced'}
+          </div>
+          <div className="status-line mono" style={{ fontSize: 11.5 }}>
+            📁 {rootName ? `${rootName}/` : ''}{relativePath}
           </div>
           <div className="modal-actions">
             <button className="btn" onClick={download}>↓ Download</button>
