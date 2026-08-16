@@ -74,6 +74,7 @@
   }
   button.ghost{
     background:transparent;
+    color:#fff;
   }
   input[type="search"]{
     width:100%;
@@ -83,6 +84,187 @@
     font-size:12px;
     margin-bottom:8px;
     background:#fff;
+  }
+
+  #grid{
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .month-section{
+    background:#fff;
+    border-radius:10px;
+    border:1px solid #dde3f0;
+    padding:8px;
+  }
+  .month-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    cursor:pointer;
+    font-size:12px;
+  }
+  .month-title{
+    font-weight:600;
+  }
+  .thumb-grid{
+    margin-top:8px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .thumb-card{
+    width:100px;
+    font-size:10px;
+    cursor:pointer;
+  }
+  .thumb-card img{
+    width:80px;
+    height:80px;
+    object-fit:cover;
+    border-radius:8px;
+    border:1px solid #dde3f0;
+    display:block;
+    margin-bottom:4px;
+  }
+  .thumb-name{
+    word-break:break-all;
+    margin-bottom:2px;
+  }
+  .thumb-category{
+    font-size:9px;
+    padding:2px 6px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    display:inline-block;
+  }
+
+  .camera-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.9);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding-top:20px;
+    z-index:50;
+    color:#f9fafb;
+  }
+  .camera-header{
+    width:100%;
+    max-width:480px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 12px;
+    box-sizing:border-box;
+    position:relative;
+    z-index:10;
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(4px);
+  }
+  .camera-body{
+    width:100%;
+    max-width:480px;
+    padding:8px 12px 16px;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .camera-video{
+    width:100%;
+    max-width:480px;
+    border-radius:12px;
+    overflow:hidden;
+    background:#000;
+    margin-top:8px;
+  }
+  .camera-video video{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+  .camera-controls{
+    margin-top:8px;
+    display:flex;
+    justify-content:center;
+    gap:12px;
+  }
+  .camera-preview{
+    margin-top:8px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .camera-preview img{
+    max-width:200px;
+    border-radius:12px;
+    border:1px solid #334155;
+  }
+  .camera-badge{
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:999px;
+    border:1px solid #334155;
+  }
+
+  .item-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.8);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+  }
+  .item-modal-inner{
+    background:#fff;
+    border-radius:12px;
+    padding:12px;
+    max-width:360px;
+    width:90%;
+    font-size:12px;
+  }
+  .item-modal-inner img{
+    width:100%;
+    max-height:260px;
+    object-fit:contain;
+    border-radius:8px;
+    margin-bottom:8px;
+  }
+
+  .bottom-bar{
+    margin-top:16px;
+    display:flex;
+    justify-content:space-around;
+    padding:10px 8px;
+    border-radius:999px;
+    border:1px solid #dde3f0;
+    background:#fff;
+    font-size:11px;
+  }
+  .bottom-cat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  .bottom-circle{
+    width:28px;
+    height:28px;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    border:1px solid #dde3f0;
+    background:#f9fafb;
   }
   .filters{
     display:flex;
@@ -122,58 +304,6 @@
     color:#445;
     margin-top:6px;
   }
-  #grid{
-    margin-top:10px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-  .month-section{
-    background:#fff;
-    border-radius:10px;
-    border:1px solid #dde3f0;
-    padding:8px;
-  }
-  .month-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    cursor:pointer;
-    font-size:12px;
-  }
-  .month-title{
-    font-weight:600;
-  }
-  .thumb-grid{
-    margin-top:8px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-  }
-  .thumb-card{
-    width:100px;
-    font-size:10px;
-  }
-  .thumb-card img{
-    width:80px;
-    height:80px;
-    object-fit:cover;
-    border-radius:8px;
-    border:1px solid #dde3f0;
-    display:block;
-    margin-bottom:4px;
-  }
-  .thumb-name{
-    word-break:break-all;
-    margin-bottom:2px;
-  }
-  .thumb-category{
-    font-size:9px;
-    padding:2px 6px;
-    border-radius:999px;
-    border:1px solid #dde3f0;
-    display:inline-block;
-  }
   .empty{
     text-align:center;
     padding:24px 12px;
@@ -184,136 +314,13 @@
     font-size:32px;
     margin-bottom:8px;
   }
-  .bottom-bar{
-    margin-top:16px;
-    display:flex;
-    justify-content:space-around;
-    padding:10px 8px;
-    border-radius:999px;
-    border:1px solid #dde3f0;
-    background:#fff;
-    font-size:11px;
-  }
-  .bottom-cat{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:4px;
-    cursor:pointer;
-  }
-  .bottom-circle{
-    width:28px;
-    height:28px;
-    border-radius:999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:14px;
-    border:1px solid #dde3f0;
-    background:#f9fafb;
-  }
-  footer{
-    margin-top:16px;
-    font-size:11px;
-    color:#667;
-  }
-  .camera-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(15,23,42,0.9);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    z-index:50;
-    color:#f9fafb;
-  }
-  .camera-header{
-    width:100%;
-    max-width:480px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:8px 12px;
-    box-sizing:border-box;
-  }
-  .camera-body{
-    width:100%;
-    max-width:480px;
-    padding:8px 12px 16px;
-    box-sizing:border-box;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:8px;
-  }
-  .camera-video{
-    width:100%;
-    max-width:480px;
-    border-radius:12px;
-    overflow:hidden;
-    background:#000;
-  }
-  .camera-video video{
-    width:100%;
-    height:auto;
-    display:block;
-  }
-  .camera-controls{
-    margin-top:8px;
-    display:flex;
-    justify-content:center;
-    gap:12px;
-  }
-  .camera-preview{
-    margin-top:8px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:8px;
-  }
-  .camera-preview img{
-    max-width:200px;
-    border-radius:12px;
-    border:1px solid #334155;
-  }
-  .camera-badge{
-    font-size:11px;
-    padding:2px 8px;
-    border-radius:999px;
-    border:1px solid #334155;
-  }
-  .item-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(15,23,42,0.8);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:60;
-  }
-  .item-modal-inner{
-    background:#fff;
-    border-radius:12px;
-    padding:12px;
-    max-width:360px;
-    width:90%;
-    font-size:12px;
-  }
-  .item-modal-inner img{
-    width:100%;
-    max-height:260px;
-    object-fit:contain;
-    border-radius:8px;
-    margin-bottom:8px;
-  }
 </style>
 </head>
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <script type="text/babel">
@@ -373,20 +380,15 @@ function guessCategoryFromName(name){
 }
 
 function monthLabel(monthKey){
-  // monthKey: "2024-08"
   const [y,m] = monthKey.split('-');
   const date = new Date(Number(y), Number(m)-1, 1);
   return date.toLocaleString(undefined,{ month:'long', year:'numeric' });
 }
-
 function extractMonthFromDate(dateStr){
-  // dateStr: "2024-08-16"
   if(!dateStr || dateStr.length < 7) return 'Unknown';
-  return dateStr.slice(0,7); // "YYYY-MM"
+  return dateStr.slice(0,7);
 }
-
 function parseDateFromFilename(name){
-  // receipt-2024-08-16T22-10-55-123Z.jpg
   const parts = name.split('-');
   if(parts.length < 4) return '';
   const year = parts[1];
@@ -487,26 +489,35 @@ function CameraModal({ category, onClose, onCaptured }) {
         <div style={{fontSize:13}}>Snap · {category}</div>
         <button className="ghost" onClick={onClose}>Close</button>
       </div>
+
       <div className="camera-body">
         <div className="camera-video">
           <video ref={videoRef} playsInline muted />
         </div>
+
         <canvas ref={canvasRef} style={{display:'none'}} />
+
         <div className="camera-controls">
           <button className="primary" onClick={capture}>Capture</button>
           {capturedFile && (
             <button onClick={share}>Share to OneDrive</button>
           )}
         </div>
+
         {previewUrl && (
           <div className="camera-preview">
             <img src={previewUrl} alt="Captured" />
             <div className="camera-badge">{category}</div>
           </div>
         )}
+
         {message && (
           <div style={{fontSize:11, marginTop:4}}>{message}</div>
         )}
+
+        <div style={{marginTop:12}}>
+          <button className="ghost" onClick={onClose}>Close</button>
+        </div>
       </div>
     </div>
   );
@@ -548,10 +559,6 @@ function App(){
   }
 
   async function pickFolder(){
-    if(!('showDirectoryPicker' in window)){
-      setOutput('Folder picker not supported in this browser. Use Chrome/Edge on desktop.');
-      return;
-    }
     try{
       const handle = await window.showDirectoryPicker();
       setDirHandle(handle);
@@ -673,19 +680,6 @@ function App(){
     return groups;
   }
 
-  const total = items.length;
-  const pendingCount = items.filter(i=>i.status==='pending').length;
-
-  function onBottomCatClick(cat){
-    setActiveCat(cat);
-    setCameraCategory(cat);
-  }
-
-  function onCapturedSnap({ file, url, category, fileName }){
-    // Mobile flow: file is shared via OneDrive; desktop will see it after sync.
-    // We don't add it to items here because it lives in OneDrive, not local.
-  }
-
   function toggleMonth(key){
     const next = new Set(expandedMonths);
     if(next.has(key)) next.delete(key);
@@ -700,6 +694,14 @@ function App(){
   function closeItemModal(){
     setSelectedItem(null);
   }
+
+  function onBottomCatClick(cat){
+    setActiveCat(cat);
+    setCameraCategory(cat);
+  }
+
+  const total = items.length;
+  const pendingCount = items.filter(i=>i.status==='pending').length;
 
   return (
     <>
@@ -717,14 +719,14 @@ function App(){
       <div className="card">
         <h2>Connect folder</h2>
         <p>
-          Desktop: connect your local OneDrive folder where files sync:<br/>
+          Desktop: connect your local OneDrive folder:<br/>
           <strong>OneDrive/Apps/PaperTrail</strong><br/><br/>
-          Mobile: snap a photo, then use <strong>Share → OneDrive → Apps/PaperTrail</strong>.  
-          After OneDrive syncs, tap Refresh here to see them.
+          Mobile: snap → Share → OneDrive → Apps/PaperTrail.<br/>
+          After sync, tap Refresh.
         </p>
         <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
           <button className="primary" onClick={pickFolder}>Connect folder</button>
-          <button className="ghost" onClick={clearFolder}>Clear</button>
+          <button onClick={clearFolder}>Clear</button>
           <span style={{fontSize:12, color:'#667'}}>
             {dirHandle ? `Connected: ${dirHandle.name}` : ''}
           </span>
@@ -744,7 +746,6 @@ function App(){
             <span
               key={cat}
               className={'chip' + (activeCat===cat ? ' active' : '')}
-              data-cat={cat}
               onClick={()=>setActiveCat(cat)}
             >
               {cat==='all' ? 'All' : cat}
@@ -756,7 +757,6 @@ function App(){
             <span
               key={st}
               className={'chip' + (activeStatus===st ? ' active' : '')}
-              data-status={st}
               onClick={()=>setActiveStatus(st)}
             >
               {st==='any' ? 'Any status' : (
@@ -794,6 +794,7 @@ function App(){
                 {list.length} item{list.length!==1?'s':''} · {expandedMonths.has(monthKey) ? '▼' : '▸'}
               </span>
             </div>
+
             {expandedMonths.has(monthKey) && (
               <div className="thumb-grid">
                 {list.map((i,idx)=>(
@@ -818,41 +819,6 @@ function App(){
           <div>Tap a category below to snap your first item.</div>
           <div style={{marginTop:6}}>{total} total · {pendingCount} pending sync</div>
         </div>
-      )}
-
-      <div className="bottom-bar">
-        {[
-          {cat:'Receipt', icon:'🧾'},
-          {cat:'Card', icon:'💳'},
-          {cat:'ID', icon:'🪪'},
-          {cat:'Warranty', icon:'🔧'},
-          {cat:'Misc', icon:'📦'},
-        ].map(c=>(
-          <div
-            key={c.cat}
-            className="bottom-cat"
-            data-cat={c.cat}
-            onClick={()=>onBottomCatClick(c.cat)}
-          >
-            <div className="bottom-circle">{c.icon}</div>
-            <div>{c.cat}</div>
-          </div>
-        ))}
-      </div>
-
-      <footer>
-        <small>
-          Mobile: use the bottom categories to open the camera, capture, then Share → OneDrive → Apps/PaperTrail.<br/>
-          Desktop: connect your local OneDrive Apps/PaperTrail folder and tap Refresh to see mobile uploads, grouped by month.
-        </small>
-      </footer>
-
-      {cameraCategory && (
-        <CameraModal
-          category={cameraCategory}
-          onClose={()=>setCameraCategory(null)}
-          onCaptured={onCapturedSnap}
-        />
       )}
 
       {selectedItem && (
@@ -881,6 +847,40 @@ function App(){
             </div>
           </div>
         </div>
+      )}
+
+      <div className="bottom-bar">
+        {[
+          {cat:'Receipt', icon:'🧾'},
+          {cat:'Card', icon:'💳'},
+          {cat:'ID', icon:'🪪'},
+          {cat:'Warranty', icon:'🔧'},
+          {cat:'Misc', icon:'📦'},
+        ].map(c=>(
+          <div
+            key={c.cat}
+            className="bottom-cat"
+            onClick={()=>onBottomCatClick(c.cat)}
+          >
+            <div className="bottom-circle">{c.icon}</div>
+            <div>{c.cat}</div>
+          </div>
+        ))}
+      </div>
+
+      <footer>
+        <small>
+          Mobile: snap → Share → OneDrive → Apps/PaperTrail.<br/>
+          Desktop: connect your OneDrive folder and tap Refresh to see month‑wise thumbnails.
+        </small>
+      </footer>
+
+      {cameraCategory && (
+        <CameraModal
+          category={cameraCategory}
+          onClose={()=>setCameraCategory(null)}
+          onCaptured={()=>{}}
+        />
       )}
     </>
   );
